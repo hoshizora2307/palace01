@@ -15,11 +15,18 @@
             text-align: center;
         }
         #gameCanvas {
+            /* ★背景はJSで描画するため、ここでは単色に */
             display: block;
-            background: linear-gradient(to bottom, #1a1a3d, #0c0c1a);
+            background-color: #0c0c1a;
             width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0;
+            z-index: 1; /* ★UIより後ろに配置 */
         }
-        #ui-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        #ui-container, #openingScreen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 2; /* ★キャンバスより手前に配置 */
+        }
         #score {
             position: absolute; top: 15px; left: 15px;
             font-size: 32px; font-weight: bold;
@@ -53,41 +60,42 @@
         #restartButton:hover { background-color: #80DA80; transform: translateY(2px); box-shadow: 0px 3px 0px #6B8E23; }
         
         #openingScreen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to top right, #3f3f74, #1a1a3d);
+            /* ★背景グラデーションは削除 (JSで描画するため) */
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             pointer-events: auto; cursor: pointer;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            opacity: 0;
-            animation: fadeIn 1s ease-out forwards;
         }
         #openingScreen.hidden { display: none; }
         
         #openingScreen h1 {
             font-family: 'Fredoka One', cursive;
-            font-size: min(10vw, 70px); color: #FFD700;
-            text-shadow: 5px 5px 0px rgba(0,0,0,0.3), 0 0 20px rgba(255, 215, 0, 0.5);
+            font-size: min(10vw, 70px);
             margin-bottom: 25px; letter-spacing: 3px;
-            animation: dropIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-            transform: translateY(-200px);
-            opacity: 0;
-        }
-        #creatorInfo, #tapToStart {
-            opacity: 0;
-            animation: fadeIn 1s ease-out 0.8s forwards;
+            
+            /* ★動くグラデーションタイトルの設定 */
+            background: linear-gradient(90deg, #ff00ff, #00ffff, #ffff00, #ff00ff);
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: gradient-text 5s linear infinite;
         }
         #creatorInfo { font-family: 'Mochiy Pop One', sans-serif; font-size: min(4.5vw, 25px); color: #DDD; margin-top: 15px; }
         #tapToStart {
             font-family: 'Fredoka One', cursive;
             font-size: min(6vw, 40px); color: #FFF;
             margin-top: 60px;
-            animation: fadeIn 1s ease-out 0.8s forwards, pulse 1.5s infinite alternate 1.8s;
-            text-shadow: 3px 3px 0px rgba(0,0,0,0.4);
+            /* ★輝くスタートボタンのアニメーション */
+            animation: pulse-glow 1.5s infinite alternate;
         }
 
-        @keyframes fadeIn { to { opacity: 1; } }
-        @keyframes dropIn { to { transform: translateY(0); opacity: 1; } }
-        @keyframes pulse { from { opacity: 1; } to { opacity: 0.6; } }
+        /* ★アニメーションの定義 */
+        @keyframes gradient-text {
+            to { background-position: -200% 0; }
+        }
+        @keyframes pulse-glow {
+            from { text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #00ffff; }
+            to { text-shadow: 0 0 10px #fff, 0 0 20px #00ffff, 0 0 30px #00ffff; }
+        }
     </style>
 </head>
 <body>
@@ -113,10 +121,8 @@
         const finalScoreUI = document.getElementById('finalScore');
         const restartButton = document.getElementById('restartButton');
         const openingScreenUI = document.getElementById('openingScreen');
-        
         const enemyImage = new Image();
-        enemyImage.src = 'takase02.png'; // 画像の読み込みを開始
-
+        enemyImage.src = 'takase02.png';
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
@@ -126,109 +132,17 @@
         let player, bullets, enemies;
         let score, bulletTimer, enemyTimer;
 
-        function drawStar(x, y, outerRadius, innerRadius, color) {
-            let rot = Math.PI / 2 * 3; let cx = x; let cy = y; let step = Math.PI / 5;
-            ctx.beginPath(); ctx.moveTo(cx, cy - outerRadius);
-            for (let i = 0; i < 5; i++) {
-                ctx.lineTo(cx + Math.cos(rot) * outerRadius, cy + Math.sin(rot) * outerRadius); rot += step;
-                ctx.lineTo(cx + Math.cos(rot) * innerRadius, cy + Math.sin(rot) * innerRadius); rot += step;
+        // ★★★ 特殊効果用の設定 ★★★
+        let particles = [];
+        let mouse = { x: null, y: null, radius: 100 };
+
+        function initParticles() {
+            particles = [];
+            let numberOfParticles = (canvas.width * canvas.height) / 9000;
+            for (let i = 0; i < numberOfParticles; i++) {
+                let size = Math.random() * 2 + 1;
+                let x = Math.random() * canvas.width;
+                let y = Math.random() * canvas.height;
+                let directionY = Math.random() * -1 - 0.5; // 上に流れる
+                particles.push({ x, y, size, directionY });
             }
-            ctx.lineTo(cx, cy - outerRadius); ctx.closePath();
-            ctx.fillStyle = color;
-            ctx.fill();
-        }
-
-        function resetGame() {
-            score = 0;
-            player = { x: canvas.width / 2, y: canvas.height - 60, size: 40, color: '#FFFACD' };
-            bullets = []; enemies = []; bulletTimer = 0; enemyTimer = 0;
-            scoreUI.textContent = 'Score: 0';
-        }
-
-        function changeState(newState) {
-            currentState = newState;
-            openingScreenUI.style.display = (newState === GameState.OPENING) ? 'flex' : 'none';
-            scoreUI.style.display = (newState === GameState.PLAYING) ? 'block' : 'none';
-            gameOverScreenUI.style.display = (newState === GameState.GAME_OVER) ? 'block' : 'none';
-        }
-
-        openingScreenUI.addEventListener('click', () => {
-            if (currentState === GameState.OPENING) { resetGame(); changeState(GameState.PLAYING); }
-        });
-
-        restartButton.addEventListener('click', () => {
-            if (currentState === GameState.GAME_OVER) { resetGame(); changeState(GameState.PLAYING); }
-        });
-
-        function movePlayer(e) {
-            if (currentState !== GameState.PLAYING) return;
-            const pos = e.touches ? e.touches[0] : e; player.x = pos.clientX;
-        }
-        canvas.addEventListener('mousemove', movePlayer);
-        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); movePlayer(e); });
-
-        function update() {
-            if (currentState !== GameState.PLAYING) return;
-
-            bulletTimer++;
-            if (bulletTimer % 15 === 0) bullets.push({ x: player.x, y: player.y, size: 15, color: '#FF00FF', speed: 8 });
-            enemyTimer++;
-            if (enemyTimer % 50 === 0) enemies.push({ x: Math.random() * canvas.width, y: -20, size: 60, speed: 2 + Math.random() * 2 });
-
-            for (let i = bullets.length - 1; i >= 0; i--) { bullets[i].y -= bullets[i].speed; if (bullets[i].y < 0) bullets.splice(i, 1); }
-            for (let i = enemies.length - 1; i >= 0; i--) { enemies[i].y += enemies[i].speed; if (enemies[i].y > canvas.height) enemies.splice(i, 1); }
-
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                const enemy = enemies[i];
-                if (getDistance(player.x, player.y, enemy.x, enemy.y) < (player.size / 2 + enemy.size / 2) * 0.7) {
-                    finalScoreUI.textContent = `Score: ${score}`; changeState(GameState.GAME_OVER);
-                }
-                for (let j = bullets.length - 1; j >= 0; j--) {
-                    if (getDistance(bullets[j].x, bullets[j].y, enemy.x, enemy.y) < (bullets[j].size / 2 + enemy.size / 2) * 0.7) {
-                        enemies.splice(i, 1); bullets.splice(j, 1); score += 100;
-                        scoreUI.textContent = `Score: ${score}`; break;
-                    }
-                }
-            }
-        }
-
-        function getDistance(x1, y1, x2, y2) { const dx = x1 - x2; const dy = y1 - y2; return Math.sqrt(dx * dx + dy * dy); }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (currentState !== GameState.PLAYING && currentState !== GameState.GAME_OVER) return;
-
-            drawStar(player.x, player.y, player.size / 2, player.size / 4, player.color);
-            bullets.forEach(b => {
-                ctx.fillStyle = b.color;
-                ctx.shadowColor = b.color;
-                ctx.shadowBlur = 10;
-                ctx.beginPath();
-                ctx.arc(b.x, b.y, b.size / 2, 0, Math.PI * 2);
-                ctx.fill();
-            });
-            ctx.shadowBlur = 0;
-            
-            enemies.forEach(e => { 
-                // ★画像が読み込み完了していれば描画、そうでなければ代わりの形を描画
-                if (enemyImage.complete && enemyImage.naturalWidth !== 0) {
-                    ctx.drawImage(enemyImage, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size); 
-                } else {
-                    ctx.fillStyle = '#9370DB'; // MediumPurple
-                    ctx.fillRect(e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
-                }
-            });
-        }
-        
-        function gameLoop() {
-            update();
-            draw();
-            requestAnimationFrame(gameLoop);
-        }
-
-        // ★★★修正点：何があっても、まずゲームループを開始する★★★
-        gameLoop();
-
-    </script>
-</body>
-</html>
