@@ -3,164 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Pop Nocturne - Cute Pop Edition!</title>
+    <title>未確認飛行物体から志賀高原を救え！</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Mochiy+Pop+One&display=swap');
 
         body, html {
             margin: 0; padding: 0; overflow: hidden;
             background-color: #0c0c1a;
-            font-family: 'Mochiy Pop One', sans-serif;
+            font-family: 'Mochiy Pop One', 'Hiragino Sans', sans-serif; /* 日本語フォントを追加 */
             color: #333;
             text-align: center;
         }
         #gameCanvas {
-            display: block;
-            background-color: #0c0c1a;
-            width: 100%; height: 100%;
-            position: absolute; top: 0; left: 0;
-            z-index: 1;
+            display: block; background-color: #0c0c1a;
+            width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1;
+            cursor: pointer;
         }
         #ui-container, #openingScreen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 2;
+            z-index: 2; pointer-events: none;
         }
+        #gameOverScreen, #restartButton, #linksContainer a { /* ★リンクもクリック可能に */
+            pointer-events: auto;
+        }
+        
         #score {
-            position: absolute; top: 15px; left: 15px;
-            font-size: 32px; font-weight: bold;
-            color: #FFFFFF;
-            text-shadow: 3px 3px 0px rgba(0,0,0,0.4);
-            display: none;
+            position: absolute; top: 15px; left: 15px; font-size: 32px; font-weight: bold;
+            color: #FFFFFF; text-shadow: 3px 3px 0px rgba(0,0,0,0.4); display: none;
         }
         #gameOverScreen {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background-color: rgba(255, 255, 255, 0.9);
-            padding: 40px; border-radius: 20px;
-            box-shadow: 0px 8px 15px rgba(0,0,0,0.2);
-            display: none; pointer-events: auto;
+            padding: 40px; border-radius: 20px; box-shadow: 0px 8px 15px rgba(0,0,0,0.2); display: none;
         }
         #gameOverScreen h1 {
-            font-family: 'Fredoka One', cursive;
-            margin: 0 0 15px 0; font-size: 48px;
-            color: #FF4500;
-            text-shadow: 3px 3px 0px rgba(255,255,255,0.7);
+            font-family: 'Fredoka One', cursive; margin: 0 0 15px 0; font-size: 48px;
+            color: #FF4500; text-shadow: 3px 3px 0px rgba(255,255,255,0.7);
         }
         #finalScore { font-size: 32px; margin-bottom: 30px; color: #4682B4; }
         #restartButton {
-            padding: 15px 35px; font-size: 24px; cursor: pointer;
-            background-color: #90EE90;
-            color: white; border: none; border-radius: 30px;
-            box-shadow: 0px 5px 0px #6B8E23;
-            transition: all 0.1s ease-out;
-            font-family: 'Mochiy Pop One', sans-serif;
+            padding: 15px 35px; font-size: 24px; cursor: pointer; background-color: #90EE90;
+            color: white; border: none; border-radius: 30px; box-shadow: 0px 5px 0px #6B8E23;
+            transition: all 0.1s ease-out; font-family: 'Mochiy Pop One', sans-serif;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
         #restartButton:hover { background-color: #80DA80; transform: translateY(2px); box-shadow: 0px 3px 0px #6B8E23; }
         
         #openingScreen {
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            pointer-events: auto; cursor: pointer;
         }
         #openingScreen.hidden { display: none; }
         
         #openingScreen h1 {
-            font-family: 'Fredoka One', cursive;
-            font-size: min(10vw, 70px);
-            margin-bottom: 25px; letter-spacing: 3px;
-            background: linear-gradient(90deg, #ff00ff, #00ffff, #ffff00, #ff00ff);
-            background-size: 200% 100%;
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            animation: gradient-text 5s linear infinite;
-        }
-        #creatorInfo { font-family: 'Mochiy Pop One', sans-serif; font-size: min(4.5vw, 25px); color: #DDD; margin-top: 15px; }
-        #tapToStart {
-            font-family: 'Fredoka One', cursive;
-            font-size: min(6vw, 40px); color: #FFF;
-            margin-top: 60px;
-            animation: pulse-glow 1.5s infinite alternate;
-        }
-
-        @keyframes gradient-text { to { background-position: -200% 0; } }
-        @keyframes pulse-glow {
-            from { text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #00ffff; }
-            to { text-shadow: 0 0 10px #fff, 0 0 20px #00ffff, 0 0 30px #00ffff; }
-        }
-    </style>
-</head>
-<body>
-    <canvas id="gameCanvas"></canvas>
-    <div id="ui-container">
-        <div id="score">Score: 0</div>
-        <div id="gameOverScreen">
-            <h1>GAME OVER!</h1>
-            <p id="finalScore">Score: 0</p>
-            <button id="restartButton">もう一度プレイ</button>
-        </div>
-    </div>
-    <div id="openingScreen">
-        <h1>Pop Nocturne!</h1>
-        <p id="creatorInfo">Creator: hoshizora2307</p>
-        <p id="tapToStart">TAP TO PLAY!</p>
-    </div>
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreUI = document.getElementById('score');
-        const gameOverScreenUI = document.getElementById('gameOverScreen');
-        const finalScoreUI = document.getElementById('finalScore');
-        const restartButton = document.getElementById('restartButton');
-        const openingScreenUI = document.getElementById('openingScreen');
-        const enemyImage = new Image();
-        enemyImage.src = 'takase02.png';
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        // --- サウンド設定 ---
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        let audioInitialized = false; // ★サウンドが有効化されたかどうかのフラグ
-        const bgm = new Audio('https://otologic.jp/sounds/bgm/mp3/Simple_Pop_3.mp3');
-        bgm.loop = true;
-        const shootSound = new Audio('https://otologic.jp/sounds/se/mp3/se-pop12.mp3');
-        const hitSound = new Audio('https://otologic.jp/sounds/se/mp3/se-pop02.mp3');
-
-        function playSound(sound) {
-            if (!audioInitialized) return; // サウンドが有効でなければ何もしない
-            sound.currentTime = 0;
-            sound.play();
-        }
-
-        // --- ゲーム状態管理 ---
-        const GameState = { OPENING: 'OPENING', PLAYING: 'PLAYING', GAME_OVER: 'GAME_OVER' };
-        let currentState = GameState.OPENING;
-        let player, bullets, enemies;
-        let score, bulletTimer, enemyTimer;
-        let particles = [];
-        let mouse = { x: null, y: null, radius: 100 };
-
-        function initParticles() {
-            particles = [];
-            let numberOfParticles = (canvas.width * canvas.height) / 9000;
-            for (let i = 0; i < numberOfParticles; i++) {
-                let size = Math.random() * 2 + 1;
-                let x = Math.random() * canvas.width;
-                let y = Math.random() * canvas.height;
-                let directionY = Math.random() * -1 - 0.5;
-                particles.push({ x, y, size, directionY });
-            }
-        }
-
-        function animateParticles() {
-            ctx.fillStyle = '#0c0c1a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            for (let i = 0; i < particles.length; i++) {
-                let p = particles[i];
-                if(mouse.x !== null) {
-                    let dx = mouse.x - p.x; let dy = mouse.y - p.y;
-                    if (Math.sqrt(dx * dx + dy * dy) < mouse.radius) { p.x -= dx / 20; p.y -= dy / 20; }
-                }
-                p.y += p.directionY;
-                if (p.y < 0) { p.x = Math.random() * canvas.width; p.y = canvas.height; }
-                ctx.beginPath(); ctx.arc(p.x
+            font-family: 'Mochiy Pop One', 'Hiragino Sans', sans-serif; /* 日本語フォント */
+            font-size: min(8vw, 50px); /* ★長文のためサイズ調整 */
+            line-height: 1.2; /* ★行間を調整 */
+            color: #FFD700;
+            text-shadow: 3px 3px 0px rgba(0,0,0,0.3),
