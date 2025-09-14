@@ -101,4 +101,66 @@
         </div>
     </div>
     <div id="openingScreen">
-        <h1>Pop
+        <h1>Pop Nocturne!</h1>
+        <p id="creatorInfo">Creator: hoshizora2307</p>
+        <p id="tapToStart">TAP TO PLAY!</p>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreUI = document.getElementById('score');
+        const gameOverScreenUI = document.getElementById('gameOverScreen');
+        const finalScoreUI = document.getElementById('finalScore');
+        const restartButton = document.getElementById('restartButton');
+        const openingScreenUI = document.getElementById('openingScreen');
+        const enemyImage = new Image();
+        enemyImage.src = 'takase02.png';
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // --- サウンド設定 ---
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let audioInitialized = false; // ★サウンドが有効化されたかどうかのフラグ
+        const bgm = new Audio('https://otologic.jp/sounds/bgm/mp3/Simple_Pop_3.mp3');
+        bgm.loop = true;
+        const shootSound = new Audio('https://otologic.jp/sounds/se/mp3/se-pop12.mp3');
+        const hitSound = new Audio('https://otologic.jp/sounds/se/mp3/se-pop02.mp3');
+
+        function playSound(sound) {
+            if (!audioInitialized) return; // サウンドが有効でなければ何もしない
+            sound.currentTime = 0;
+            sound.play();
+        }
+
+        // --- ゲーム状態管理 ---
+        const GameState = { OPENING: 'OPENING', PLAYING: 'PLAYING', GAME_OVER: 'GAME_OVER' };
+        let currentState = GameState.OPENING;
+        let player, bullets, enemies;
+        let score, bulletTimer, enemyTimer;
+        let particles = [];
+        let mouse = { x: null, y: null, radius: 100 };
+
+        function initParticles() {
+            particles = [];
+            let numberOfParticles = (canvas.width * canvas.height) / 9000;
+            for (let i = 0; i < numberOfParticles; i++) {
+                let size = Math.random() * 2 + 1;
+                let x = Math.random() * canvas.width;
+                let y = Math.random() * canvas.height;
+                let directionY = Math.random() * -1 - 0.5;
+                particles.push({ x, y, size, directionY });
+            }
+        }
+
+        function animateParticles() {
+            ctx.fillStyle = '#0c0c1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particles.length; i++) {
+                let p = particles[i];
+                if(mouse.x !== null) {
+                    let dx = mouse.x - p.x; let dy = mouse.y - p.y;
+                    if (Math.sqrt(dx * dx + dy * dy) < mouse.radius) { p.x -= dx / 20; p.y -= dy / 20; }
+                }
+                p.y += p.directionY;
+                if (p.y < 0) { p.x = Math.random() * canvas.width; p.y = canvas.height; }
+                ctx.beginPath(); ctx.arc(p.x
