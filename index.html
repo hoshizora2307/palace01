@@ -52,15 +52,14 @@
         }
         #restartButton:hover { background-color: #80DA80; transform: translateY(2px); box-shadow: 0px 3px 0px #6B8E23; }
         
-        /* --- ★オープニング画面のスタイルを強化 --- */
         #openingScreen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(to top right, #3f3f74, #1a1a3d);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             pointer-events: auto; cursor: pointer;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            opacity: 0; /* 最初は透明 */
-            animation: fadeIn 1s ease-out forwards; /* 起動時にフェードイン */
+            opacity: 0;
+            animation: fadeIn 1s ease-out forwards;
         }
         #openingScreen.hidden { display: none; }
         
@@ -69,21 +68,167 @@
             font-size: min(10vw, 70px); color: #FFD700;
             text-shadow: 5px 5px 0px rgba(0,0,0,0.3), 0 0 20px rgba(255, 215, 0, 0.5);
             margin-bottom: 25px; letter-spacing: 3px;
-            animation: dropIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; /* ★タイトルが落ちてくるアニメーション */
+            animation: dropIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
             transform: translateY(-200px);
             opacity: 0;
         }
         #creatorInfo, #tapToStart {
             opacity: 0;
-            animation: fadeIn 1s ease-out 0.8s forwards; /* ★他の文字が遅れてフェードイン */
+            animation: fadeIn 1s ease-out 0.8s forwards;
         }
         #creatorInfo { font-family: 'Mochiy Pop One', sans-serif; font-size: min(4.5vw, 25px); color: #DDD; margin-top: 15px; }
         #tapToStart {
             font-family: 'Fredoka One', cursive;
             font-size: min(6vw, 40px); color: #FFF;
             margin-top: 60px;
-            animation: fadeIn 1s ease-out 0.8s forwards, pulse 1.5s infinite alternate 1.8s; /* ★フェードイン後に点滅開始 */
+            animation: fadeIn 1s ease-out 0.8s forwards, pulse 1.5s infinite alternate 1.8s;
             text-shadow: 3px 3px 0px rgba(0,0,0,0.4);
         }
 
-        /* --- ★アニメーションの
+        @keyframes fadeIn { to { opacity: 1; } }
+        @keyframes dropIn { to { transform: translateY(0); opacity: 1; } }
+        @keyframes pulse { from { opacity: 1; } to { opacity: 0.6; } }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui-container">
+        <div id="score">Score: 0</div>
+        <div id="gameOverScreen">
+            <h1>GAME OVER!</h1>
+            <p id="finalScore">Score: 0</p>
+            <button id="restartButton">もう一度プレイ</button>
+        </div>
+    </div>
+    <div id="openingScreen">
+        <h1>Pop Nocturne!</h1>
+        <p id="creatorInfo">Creator: hoshizora2307</p>
+        <p id="tapToStart">TAP TO PLAY!</p>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreUI = document.getElementById('score');
+        const gameOverScreenUI = document.getElementById('gameOverScreen');
+        const finalScoreUI = document.getElementById('finalScore');
+        const restartButton = document.getElementById('restartButton');
+        const openingScreenUI = document.getElementById('openingScreen');
+        
+        const enemyImage = new Image();
+        enemyImage.src = 'takase02.png'; // 画像の読み込みを開始
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const GameState = { OPENING: 'OPENING', PLAYING: 'PLAYING', GAME_OVER: 'GAME_OVER' };
+        let currentState = GameState.OPENING;
+
+        let player, bullets, enemies;
+        let score, bulletTimer, enemyTimer;
+
+        function drawStar(x, y, outerRadius, innerRadius, color) {
+            let rot = Math.PI / 2 * 3; let cx = x; let cy = y; let step = Math.PI / 5;
+            ctx.beginPath(); ctx.moveTo(cx, cy - outerRadius);
+            for (let i = 0; i < 5; i++) {
+                ctx.lineTo(cx + Math.cos(rot) * outerRadius, cy + Math.sin(rot) * outerRadius); rot += step;
+                ctx.lineTo(cx + Math.cos(rot) * innerRadius, cy + Math.sin(rot) * innerRadius); rot += step;
+            }
+            ctx.lineTo(cx, cy - outerRadius); ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        function resetGame() {
+            score = 0;
+            player = { x: canvas.width / 2, y: canvas.height - 60, size: 40, color: '#FFFACD' };
+            bullets = []; enemies = []; bulletTimer = 0; enemyTimer = 0;
+            scoreUI.textContent = 'Score: 0';
+        }
+
+        function changeState(newState) {
+            currentState = newState;
+            openingScreenUI.style.display = (newState === GameState.OPENING) ? 'flex' : 'none';
+            scoreUI.style.display = (newState === GameState.PLAYING) ? 'block' : 'none';
+            gameOverScreenUI.style.display = (newState === GameState.GAME_OVER) ? 'block' : 'none';
+        }
+
+        openingScreenUI.addEventListener('click', () => {
+            if (currentState === GameState.OPENING) { resetGame(); changeState(GameState.PLAYING); }
+        });
+
+        restartButton.addEventListener('click', () => {
+            if (currentState === GameState.GAME_OVER) { resetGame(); changeState(GameState.PLAYING); }
+        });
+
+        function movePlayer(e) {
+            if (currentState !== GameState.PLAYING) return;
+            const pos = e.touches ? e.touches[0] : e; player.x = pos.clientX;
+        }
+        canvas.addEventListener('mousemove', movePlayer);
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); movePlayer(e); });
+
+        function update() {
+            if (currentState !== GameState.PLAYING) return;
+
+            bulletTimer++;
+            if (bulletTimer % 15 === 0) bullets.push({ x: player.x, y: player.y, size: 15, color: '#FF00FF', speed: 8 });
+            enemyTimer++;
+            if (enemyTimer % 50 === 0) enemies.push({ x: Math.random() * canvas.width, y: -20, size: 60, speed: 2 + Math.random() * 2 });
+
+            for (let i = bullets.length - 1; i >= 0; i--) { bullets[i].y -= bullets[i].speed; if (bullets[i].y < 0) bullets.splice(i, 1); }
+            for (let i = enemies.length - 1; i >= 0; i--) { enemies[i].y += enemies[i].speed; if (enemies[i].y > canvas.height) enemies.splice(i, 1); }
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                if (getDistance(player.x, player.y, enemy.x, enemy.y) < (player.size / 2 + enemy.size / 2) * 0.7) {
+                    finalScoreUI.textContent = `Score: ${score}`; changeState(GameState.GAME_OVER);
+                }
+                for (let j = bullets.length - 1; j >= 0; j--) {
+                    if (getDistance(bullets[j].x, bullets[j].y, enemy.x, enemy.y) < (bullets[j].size / 2 + enemy.size / 2) * 0.7) {
+                        enemies.splice(i, 1); bullets.splice(j, 1); score += 100;
+                        scoreUI.textContent = `Score: ${score}`; break;
+                    }
+                }
+            }
+        }
+
+        function getDistance(x1, y1, x2, y2) { const dx = x1 - x2; const dy = y1 - y2; return Math.sqrt(dx * dx + dy * dy); }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (currentState !== GameState.PLAYING && currentState !== GameState.GAME_OVER) return;
+
+            drawStar(player.x, player.y, player.size / 2, player.size / 4, player.color);
+            bullets.forEach(b => {
+                ctx.fillStyle = b.color;
+                ctx.shadowColor = b.color;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.size / 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.shadowBlur = 0;
+            
+            enemies.forEach(e => { 
+                // ★画像が読み込み完了していれば描画、そうでなければ代わりの形を描画
+                if (enemyImage.complete && enemyImage.naturalWidth !== 0) {
+                    ctx.drawImage(enemyImage, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size); 
+                } else {
+                    ctx.fillStyle = '#9370DB'; // MediumPurple
+                    ctx.fillRect(e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
+                }
+            });
+        }
+        
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ★★★修正点：何があっても、まずゲームループを開始する★★★
+        gameLoop();
+
+    </script>
+</body>
+</html>
