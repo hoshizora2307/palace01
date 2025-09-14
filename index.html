@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Pocket Nocturne (Web ver.)</title>
     <style>
-        /* --- ページの基本スタイル --- */
         body, html {
             margin: 0;
             padding: 0;
@@ -15,26 +14,20 @@
             color: white;
             text-align: center;
         }
-
-        /* --- ゲーム画面のスタイル --- */
         #gameCanvas {
             display: block;
             background-color: #111;
             width: 100%;
             height: 100%;
         }
-
-        /* --- UI全体のコンテナ --- */
         #ui-container {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none; /* UIがゲーム操作の邪魔をしないようにする */
+            pointer-events: none;
         }
-
-        /* --- スコア表示のスタイル --- */
         #score {
             position: absolute;
             top: 10px;
@@ -43,8 +36,6 @@
             font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
         }
-
-        /* --- ゲームオーバー画面のスタイル --- */
         #gameOverScreen {
             position: absolute;
             top: 50%;
@@ -57,17 +48,8 @@
             display: none;
             pointer-events: auto;
         }
-
-        #gameOverScreen h1 {
-            margin: 0 0 10px 0;
-            font-size: 36px;
-        }
-        
-        #finalScore {
-            font-size: 24px;
-            margin-bottom: 30px;
-        }
-
+        #gameOverScreen h1 { margin: 0 0 10px 0; font-size: 36px; }
+        #finalScore { font-size: 24px; margin-bottom: 30px; }
         #restartButton {
             padding: 15px 30px;
             font-size: 20px;
@@ -78,60 +60,46 @@
             border-radius: 5px;
             transition: background-color 0.3s;
         }
-
-        #restartButton:hover {
-            background-color: #45a049;
-        }
-
-        /* --- ★オープニング画面のスタイル --- */
+        #restartButton:hover { background-color: #45a049; }
         #openingScreen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: url('takase01.jpg'); /* 背景画像として使用 */
-            background-size: cover; /* 画面いっぱいに広げる */
-            background-position: center; /* 中央に配置 */
+            background-image: url('takase01.jpg');
+            background-size: cover;
+            background-position: center;
             background-repeat: no-repeat;
-            display: flex; /* Flexboxでコンテンツを中央寄せ */
+            display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            pointer-events: auto; /* クリックできるようにする */
-            cursor: pointer; /* クリック可能であることを示す */
+            pointer-events: auto;
+            cursor: pointer;
         }
-
-        #openingScreen.game-started {
-            display: none; /* ゲーム開始後は非表示 */
-        }
-
+        #openingScreen.hidden { display: none; }
         #openingScreen h1 {
-            font-family: 'Georgia', serif; /* 豪華なフォントをイメージ */
-            font-size: min(8vw, 60px); /* 画面サイズに合わせて調整 */
-            color: #FFD700; /* ゴールド */
-            text-shadow: 4px 4px 8px rgba(0,0,0,0.8), 
-                         0 0 15px rgba(255,255,255,0.5); /* 豪華な影 */
+            font-family: 'Georgia', serif;
+            font-size: min(8vw, 60px);
+            color: #FFD700;
+            text-shadow: 4px 4px 8px rgba(0,0,0,0.8), 0 0 15px rgba(255,255,255,0.5);
             margin-bottom: 20px;
             letter-spacing: 2px;
         }
-        
         #creatorInfo {
             font-size: min(4vw, 20px);
             color: #EEE;
             margin-top: 10px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
         }
-
         #tapToStart {
             font-size: min(5vw, 30px);
             color: white;
             margin-top: 50px;
-            animation: pulse 1.5s infinite alternate; /* 点滅アニメーション */
+            animation: pulse 1.5s infinite alternate;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
         }
-
-        /* 点滅アニメーションの定義 */
         @keyframes pulse {
             from { opacity: 1; }
             to { opacity: 0.5; }
@@ -139,13 +107,99 @@
     </style>
 </head>
 <body>
-
     <canvas id="gameCanvas"></canvas>
-
     <div id="ui-container">
         <div id="score">Score: 0</div>
-        
         <div id="gameOverScreen">
             <h1>GAME OVER</h1>
             <p id="finalScore">Score: 0</p>
             <button id="restartButton">もう一度プレイ</button>
+        </div>
+    </div>
+    <div id="openingScreen">
+        <h1>Palace of Requiem: Pocket Nocturne</h1>
+        <p id="creatorInfo">Creator: hoshizora2307</p>
+        <p id="tapToStart">TAP TO START</p>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreUI = document.getElementById('score');
+        const gameOverScreenUI = document.getElementById('gameOverScreen');
+        const finalScoreUI = document.getElementById('finalScore');
+        const restartButton = document.getElementById('restartButton');
+        const openingScreenUI = document.getElementById('openingScreen');
+        const enemyImage = new Image();
+        enemyImage.src = 'takase01.jpg';
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let score, isGameOver, gameStarted;
+        let player, bullets, enemies;
+        let bulletTimer, enemyTimer;
+
+        function resetGameVariables() {
+            score = 0;
+            isGameOver = false;
+            player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, color: '#00BFFF' };
+            bullets = [];
+            enemies = [];
+            bulletTimer = 0;
+            enemyTimer = 0;
+            scoreUI.textContent = 'Score: 0';
+            gameOverScreenUI.style.display = 'none';
+        }
+        
+        function startGame() {
+            if (gameStarted) return;
+            gameStarted = true;
+            resetGameVariables();
+            openingScreenUI.classList.add('hidden');
+        }
+
+        function drawRect(obj) {
+            ctx.fillStyle = obj.color;
+            ctx.fillRect(obj.x - obj.width / 2, obj.y - obj.height / 2, obj.width, obj.height);
+        }
+
+        function isColliding(rect1, rect2) {
+            let r1x = rect1.x - rect1.width / 2;
+            let r1y = rect1.y - rect1.height / 2;
+            let r2x = rect2.x - rect2.width / 2;
+            let r2y = rect2.y - rect2.height / 2;
+            return r1x < r2x + rect2.width && r1x + rect1.width > r2x && r1y < r2y + rect2.height && r1y + rect1.height > r2y;
+        }
+
+        function handleGameOver() {
+            isGameOver = true;
+            finalScoreUI.textContent = `Score: ${score}`;
+            gameOverScreenUI.style.display = 'block';
+        }
+
+        function update() {
+            if (!gameStarted || isGameOver) return;
+            bulletTimer++;
+            if (bulletTimer % 15 === 0) {
+                bullets.push({ x: player.x, y: player.y, width: 5, height: 15, color: '#FFFF00', speed: 7 });
+            }
+            enemyTimer++;
+            if (enemyTimer % 50 === 0) {
+                enemies.push({ x: Math.random() * canvas.width, y: -20, width: 40, height: 40, speed: 2 + Math.random() * 2 });
+            }
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                bullets[i].y -= bullets[i].speed;
+                if (bullets[i].y < 0) bullets.splice(i, 1);
+            }
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                enemies[i].y += enemies[i].speed;
+                if (enemies[i].y > canvas.height) enemies.splice(i, 1);
+            }
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                if (isColliding(player, enemy)) { handleGameOver(); }
+                for (let j = bullets.length - 1; j >= 0; j--) {
+                    const bullet = bullets[j];
+                    if (isColliding(bullet, enemy)) {
+                        enemies.splice(i, 1);
+                        bullets.splice(j, 1);
+                        score += 100;
