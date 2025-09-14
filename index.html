@@ -3,283 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Pocket Nocturne - Cute Pop Edition!</title>
+    <title>Pop Nocturne - Cute Pop Edition!</title>
     <style>
-        /* 全体のフォントをPOPなものに */
         @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Mochiy+Pop+One&display=swap');
 
         body, html {
             margin: 0; padding: 0; overflow: hidden;
-            background-color: #F0F8FF; /* AliceBlue */
-            font-family: 'Mochiy Pop One', sans-serif; /* POPなフォント */
-            color: #333; /* 文字色も可愛く */
+            background-color: #0c0c1a;
+            font-family: 'Mochiy Pop One', sans-serif;
+            color: #333;
             text-align: center;
         }
         #gameCanvas {
             display: block;
-            background: linear-gradient(to bottom, #ADD8E6, #87CEEB); /* 薄い青空グラデーション */
+            background: linear-gradient(to bottom, #1a1a3d, #0c0c1a);
             width: 100%; height: 100%;
         }
         #ui-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         #score {
             position: absolute; top: 15px; left: 15px;
             font-size: 32px; font-weight: bold;
-            color: #FF69B4; /* ホットピンク */
-            text-shadow: 3px 3px 0px rgba(255,255,255,0.7), 
-                         -3px -3px 0px rgba(0,0,0,0.2); /* POPな影 */
+            color: #FFFFFF;
+            text-shadow: 3px 3px 0px rgba(0,0,0,0.4);
             display: none;
         }
         #gameOverScreen {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background-color: rgba(255, 255, 255, 0.9); /* 半透明の白 */
+            background-color: rgba(255, 255, 255, 0.9);
             padding: 40px; border-radius: 20px;
-            box-shadow: 0px 8px 15px rgba(0,0,0,0.2); /* 浮いた感じの影 */
+            box-shadow: 0px 8px 15px rgba(0,0,0,0.2);
             display: none; pointer-events: auto;
         }
         #gameOverScreen h1 {
-            font-family: 'Fredoka One', cursive; /* POPなタイトルフォント */
+            font-family: 'Fredoka One', cursive;
             margin: 0 0 15px 0; font-size: 48px;
-            color: #FF4500; /* オレンジレッド */
+            color: #FF4500;
             text-shadow: 3px 3px 0px rgba(255,255,255,0.7);
         }
-        #finalScore {
-            font-size: 32px; margin-bottom: 30px;
-            color: #4682B4; /* スチールブルー */
-        }
+        #finalScore { font-size: 32px; margin-bottom: 30px; color: #4682B4; }
         #restartButton {
             padding: 15px 35px; font-size: 24px; cursor: pointer;
-            background-color: #90EE90; /* ライトグリーン */
+            background-color: #90EE90;
             color: white; border: none; border-radius: 30px;
-            box-shadow: 0px 5px 0px #6B8E23; /* 押し込み感のある影 */
+            box-shadow: 0px 5px 0px #6B8E23;
             transition: all 0.1s ease-out;
             font-family: 'Mochiy Pop One', sans-serif;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
-        #restartButton:hover {
-            background-color: #80DA80;
-            transform: translateY(2px); /* 少し沈む */
-            box-shadow: 0px 3px 0px #6B8E23;
-        }
-
-        /* --- ★オープニング画面のスタイル --- */
+        #restartButton:hover { background-color: #80DA80; transform: translateY(2px); box-shadow: 0px 3px 0px #6B8E23; }
+        
+        /* --- ★オープニング画面のスタイルを強化 --- */
         #openingScreen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to top right, #FFDAB9, #FFC0CB); /* パステルピンクとピーチのグラデーション */
+            background: linear-gradient(to top right, #3f3f74, #1a1a3d);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             pointer-events: auto; cursor: pointer;
-            text-shadow: 2px 2px 4px rgba(255,255,255,0.5); /* 全体的に明るい影 */
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            opacity: 0; /* 最初は透明 */
+            animation: fadeIn 1s ease-out forwards; /* 起動時にフェードイン */
         }
         #openingScreen.hidden { display: none; }
+        
         #openingScreen h1 {
-            font-family: 'Fredoka One', cursive; /* POPなタイトルフォント */
-            font-size: min(10vw, 70px); color: #DC143C; /* クリムゾンレッド */
-            text-shadow: 5px 5px 0px rgba(255,255,255,0.8), 
-                         -5px -5px 0px rgba(0,0,0,0.1);
+            font-family: 'Fredoka One', cursive;
+            font-size: min(10vw, 70px); color: #FFD700;
+            text-shadow: 5px 5px 0px rgba(0,0,0,0.3), 0 0 20px rgba(255, 215, 0, 0.5);
             margin-bottom: 25px; letter-spacing: 3px;
+            animation: dropIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; /* ★タイトルが落ちてくるアニメーション */
+            transform: translateY(-200px);
+            opacity: 0;
         }
-        #creatorInfo {
-            font-family: 'Mochiy Pop One', sans-serif;
-            font-size: min(4.5vw, 25px); color: #6A5ACD; /* スレートブルー */
-            margin-top: 15px;
+        #creatorInfo, #tapToStart {
+            opacity: 0;
+            animation: fadeIn 1s ease-out 0.8s forwards; /* ★他の文字が遅れてフェードイン */
         }
+        #creatorInfo { font-family: 'Mochiy Pop One', sans-serif; font-size: min(4.5vw, 25px); color: #DDD; margin-top: 15px; }
         #tapToStart {
             font-family: 'Fredoka One', cursive;
-            font-size: min(6vw, 40px); color: #FFA500; /* オレンジ */
+            font-size: min(6vw, 40px); color: #FFF;
             margin-top: 60px;
-            animation: pulse 1.5s infinite alternate;
-            text-shadow: 3px 3px 0px rgba(255,255,255,0.7);
-        }
-        @keyframes pulse { from { opacity: 1; } to { opacity: 0.6; } }
-    </style>
-</head>
-<body>
-    <canvas id="gameCanvas"></canvas>
-    <div id="ui-container">
-        <div id="score">Score: 0</div>
-        <div id="gameOverScreen">
-            <h1>GAME OVER!</h1>
-            <p id="finalScore">Score: 0</p>
-            <button id="restartButton">もう一度プレイ</button>
-        </div>
-    </div>
-    <div id="openingScreen">
-        <h1>Pop Nocturne!</h1> <p id="creatorInfo">Creator: hoshizora2307</p>
-        <p id="tapToStart">TAP TO PLAY!</p>
-    </div>
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreUI = document.getElementById('score');
-        const gameOverScreenUI = document.getElementById('gameOverScreen');
-        const finalScoreUI = document.getElementById('finalScore');
-        const restartButton = document.getElementById('restartButton');
-        const openingScreenUI = document.getElementById('openingScreen');
-        const enemyImage = new Image(); // 敵の画像は使わないが、読み込みは維持
-        enemyImage.src = 'takase01.jpg'; // 必要なければこの行は削除可能
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        const GameState = {
-            OPENING: 'OPENING',
-            PLAYING: 'PLAYING',
-            GAME_OVER: 'GAME_OVER'
-        };
-        let currentState = GameState.OPENING;
-
-        let player, bullets, enemies;
-        let score, bulletTimer, enemyTimer;
-
-        // --- ハートを描画するヘルパー関数 ---
-        function drawHeart(x, y, size, color) {
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.moveTo(x, y + size / 4);
-            ctx.bezierCurveTo(x + size / 2, y - size / 2, x + size, y, x, y + size);
-            ctx.bezierCurveTo(x - size, y, x - size / 2, y - size / 2, x, y + size / 4);
-            ctx.closePath();
-            ctx.fill();
+            animation: fadeIn 1s ease-out 0.8s forwards, pulse 1.5s infinite alternate 1.8s; /* ★フェードイン後に点滅開始 */
+            text-shadow: 3px 3px 0px rgba(0,0,0,0.4);
         }
 
-        // --- 星を描画するヘルパー関数 (プレイヤー用) ---
-        function drawStar(x, y, outerRadius, innerRadius, color) {
-            let rot = Math.PI / 2 * 3;
-            let cx = x;
-            let cy = y;
-            let step = Math.PI / 5;
-
-            ctx.beginPath();
-            ctx.moveTo(cx, cy - outerRadius);
-            for (let i = 0; i < 5; i++) {
-                ctx.lineTo(cx + Math.cos(rot) * outerRadius, cy + Math.sin(rot) * outerRadius);
-                rot += step;
-                ctx.lineTo(cx + Math.cos(rot) * innerRadius, cy + Math.sin(rot) * innerRadius);
-                rot += step;
-            }
-            ctx.lineTo(cx, cy - outerRadius);
-            ctx.closePath();
-            ctx.fillStyle = color;
-            ctx.fill();
-        }
-
-        function resetGame() {
-            score = 0;
-            player = { x: canvas.width / 2, y: canvas.height - 60, size: 40, color: '#FFD700' }; // プレイヤーは金色星
-            bullets = [];
-            enemies = [];
-            bulletTimer = 0;
-            enemyTimer = 0;
-            scoreUI.textContent = 'Score: 0';
-        }
-
-        function changeState(newState) {
-            currentState = newState;
-            openingScreenUI.style.display = (newState === GameState.OPENING) ? 'flex' : 'none';
-            scoreUI.style.display = (newState === GameState.PLAYING) ? 'block' : 'none';
-            gameOverScreenUI.style.display = (newState === GameState.GAME_OVER) ? 'block' : 'none';
-        }
-
-        openingScreenUI.addEventListener('click', () => {
-            if (currentState === GameState.OPENING) {
-                resetGame();
-                changeState(GameState.PLAYING);
-            }
-        });
-
-        restartButton.addEventListener('click', () => {
-            if (currentState === GameState.GAME_OVER) {
-                resetGame();
-                changeState(GameState.PLAYING);
-            }
-        });
-
-        function movePlayer(e) {
-            if (currentState !== GameState.PLAYING) return;
-            const pos = e.touches ? e.touches[0] : e;
-            player.x = pos.clientX;
-        }
-        canvas.addEventListener('mousemove', movePlayer);
-        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); movePlayer(e); });
-
-        function update() {
-            if (currentState !== GameState.PLAYING) return;
-
-            // 弾の生成
-            bulletTimer++;
-            if (bulletTimer % 15 === 0) bullets.push({ x: player.x, y: player.y, size: 15, color: '#87CEEB', speed: 7 }); // 弾は水色シャボン玉
-            // 敵の生成
-            enemyTimer++;
-            if (enemyTimer % 50 === 0) enemies.push({ x: Math.random() * canvas.width, y: -20, size: 40, color: '#FF69B4', speed: 2 + Math.random() * 2 }); // 敵はピンクのハート
-
-            // 弾の移動
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                bullets[i].y -= bullets[i].speed;
-                if (bullets[i].y < 0) bullets.splice(i, 1);
-            }
-            // 敵の移動
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                enemies[i].y += enemies[i].speed;
-                if (enemies[i].y > canvas.height) enemies.splice(i, 1);
-            }
-
-            // 衝突判定
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                const enemy = enemies[i];
-                // プレイヤーと敵の衝突（円形に近い当たり判定）
-                if (getDistance(player.x, player.y, enemy.x, enemy.y) < (player.size / 2 + enemy.size / 2) * 0.7) { // 少し甘め
-                    finalScoreUI.textContent = `Score: ${score}`;
-                    changeState(GameState.GAME_OVER);
-                }
-                for (let j = bullets.length - 1; j >= 0; j--) {
-                    if (getDistance(bullets[j].x, bullets[j].y, enemy.x, enemy.y) < (bullets[j].size / 2 + enemy.size / 2) * 0.7) { // 少し甘め
-                        enemies.splice(i, 1);
-                        bullets.splice(j, 1);
-                        score += 100;
-                        scoreUI.textContent = `Score: ${score}`;
-                        break;
-                    }
-                }
-            }
-        }
-
-        // 距離計算（円形当たり判定用）
-        function getDistance(x1, y1, x2, y2) {
-            const dx = x1 - x2;
-            const dy = y1 - y2;
-            return Math.sqrt(dx * dx + dy * dy);
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // キャンバスをクリア
-
-            if (currentState !== GameState.PLAYING && currentState !== GameState.GAME_OVER) return;
-
-            // プレイヤー（星）を描画
-            drawStar(player.x, player.y, player.size / 2, player.size / 4, player.color);
-
-            // 弾（円）を描画
-            bullets.forEach(b => {
-                ctx.fillStyle = b.color;
-                ctx.beginPath();
-                ctx.arc(b.x, b.y, b.size / 2, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            // 敵（ハート）を描画
-            enemies.forEach(e => {
-                drawHeart(e.x, e.y, e.size, e.color);
-            });
-        }
-        
-        // --- ゲームループ ---
-        function gameLoop() {
-            update();
-            draw();
-            requestAnimationFrame(gameLoop);
-        }
-
-        // --- ゲーム開始 ---
-        // 画像読み込みを待たずにゲームループ開始（UI表示のため）
-        gameLoop(); 
-    </script>
-</body>
-</html>
+        /* --- ★アニメーションの
