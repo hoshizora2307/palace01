@@ -49,8 +49,12 @@
         }
         #restartButton:hover { background-color: #80DA80; transform: translateY(2px); box-shadow: 0px 3px 0px #6B8E23; }
         
+        /* ★★★ 復元されたオープニング画面のスタイル ★★★ */
         #openingScreen {
             display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            opacity: 0;
+            animation: fadeIn 1s ease-out forwards;
         }
         #openingScreen.hidden { display: none; }
         
@@ -58,50 +62,8 @@
             font-family: 'Mochiy Pop One', 'Hiragino Sans', sans-serif;
             font-size: min(8vw, 50px);
             line-height: 1.2;
-            color: #FFD700;
-            text-shadow: 3px 3px 0px rgba(0,0,0,0.3), 0 0 15px rgba(255, 215, 0, 0.5);
             margin-bottom: 15px; letter-spacing: 2px;
-        }
-        #coalitionInfo {
-            font-size: min(3vw, 14px); color: #DDD;
-            margin: 0 0 15px 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.7); line-height: 1.5;
-        }
-        #creatorInfo { font-size: min(4.5vw, 25px); color: #DDD; }
-        
-        #linksContainer {
-            margin-top: 20px; display: flex; gap: 15px;
-        }
-        #linksContainer a {
-            color: white; background-color: rgba(255, 255, 255, 0.2);
-            padding: 8px 15px; border-radius: 20px; text-decoration: none;
-            font-size: min(3.5vw, 16px); transition: background-color 0.3s;
-        }
-        #linksContainer a:hover { background-color: rgba(255, 255, 255, 0.4); }
-        
-        #tapToStart {
-            font-family: 'Fredoka One', cursive;
-            font-size: min(6vw, 40px); color: #FFF;
-            margin-top: 30px;
-            animation: pulse-glow 1.5s infinite alternate;
-        }
-
-        @keyframes pulse-glow {
-            from { text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #00ffff; }
-            to { text-shadow: 0 0 10px #fff, 0 0 20px #00ffff, 0 0 30px #00ffff; }
-        }
-    </style>
-</head>
-<body>
-    <canvas id="gameCanvas"></canvas>
-    <div id="ui-container">
-        <div id="score">Score: 0</div>
-        <div id="gameOverScreen">
-            <h1>GAME OVER!</h1>
-            <p id="finalScore">Score: 0</p>
-            <button id="restartButton">もう一度プレイ</button>
-        </div>
-    </div>
-    <div id="openingScreen">
-        <h1>未確認飛行物体から<br>志賀高原を救え！</h1>
-        <p id="coalitionInfo">
-            Chúng tôi là liên minh Việt Nam, Trung Quốc, Nepal, Indonesia.<br
+            /* ★復元：動くグラデーションタイトルの設定 */
+            background: linear-gradient(90deg, #ff00ff, #00ffff, #ffff00, #ff00ff);
+            background-size: 200% 100%;
+            -webkit-background-
