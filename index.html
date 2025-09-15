@@ -95,7 +95,6 @@
         const finalScoreUI = document.getElementById('finalScore');
         const restartButton = document.getElementById('restartButton');
         
-        // ★★★ 敵画像の読み込み ★★★
         const enemyImage_takase02 = new Image();
         enemyImage_takase02.src = 'takase02.png';
         const enemyImage_kanai = new Image();
@@ -198,7 +197,6 @@
                 playSound(shootSound);
             }
 
-            // ★★★ 新しい敵の出現ロジック ★★★
             // ボスの出現
             if (score >= bossSpawnScore) {
                 const bossExists = enemies.some(e => e.type === 'boss');
@@ -213,21 +211,21 @@
 
             // ザコ敵の出現
             enemyTimer++;
-            if (enemyTimer % 30 === 0) { // 出現頻度を少し上げる
+            if (enemyTimer % 30 === 0) {
                 const rand = Math.random();
-                if (rand < 0.45) { // takase02 (基本)
+                if (rand < 0.45) {
                     enemies.push({
                         type: 'basic', x: Math.random() * canvas.width, y: -50, size: 50,
                         speed: 2.5 + Math.random(), hp: 1, scoreValue: 100, image: enemyImage_takase02
                     });
-                } else if (rand < 0.75) { // kanai (横移動)
+                } else if (rand < 0.75) {
                     const startX = Math.random() < 0.5 ? -40 : canvas.width + 40;
                     const speedX = startX < 0 ? 2 : -2;
                     enemies.push({
                         type: 'zako', x: startX, y: Math.random() * canvas.height * 0.3, size: 45,
                         vx: speedX, vy: 0.5, hp: 1, scoreValue: 150, image: enemyImage_kanai
                     });
-                } else { // takase03 (不規則)
+                } else {
                     enemies.push({
                         type: 'irregular', x: Math.random() * canvas.width, y: -60, size: 60,
                         vx: (Math.random() - 0.5) * 4, vy: 2, hp: 3, scoreValue: 300, image: enemyImage_takase03,
@@ -243,50 +241,53 @@
             // 敵の移動と画面外の削除
             enemies.forEach(e => {
                 switch(e.type) {
-                    case 'basic':
-                    case 'boss':
-                        e.y += e.speed;
-                        break;
+                    case 'basic': case 'boss': e.y += e.speed; break;
                     case 'zako':
-                        e.x += e.vx;
-                        e.y += e.vy;
+                        e.x += e.vx; e.y += e.vy;
                         if (e.x + e.size/2 < 0 || e.x - e.size/2 > canvas.width) {
-                            if (e.y > 0) e.vx *= -1; // 画面内に入ってから反転
+                            if (e.y > 0) e.vx *= -1;
                         }
                         break;
                     case 'irregular':
-                        e.x += e.vx;
-                        e.y += e.vy;
-                        e.rotation += e.rotationSpeed;
+                        e.x += e.vx; e.y += e.vy; e.rotation += e.rotationSpeed;
                         if (e.x + e.size/2 < 0 || e.x - e.size/2 > canvas.width) e.vx *= -1;
-                        if (Math.random() < 0.01) e.vx = (Math.random() - 0.5) * 4; // たまに動きを変える
+                        if (Math.random() < 0.01) e.vx = (Math.random() - 0.5) * 4;
                         break;
                 }
             });
             enemies = enemies.filter(e => e.y < canvas.height + e.size);
 
-            // ★★★ 当たり判定ロジック（HP制に対応） ★★★
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                const enemy = enemies[i];
+            // ★★★ 当たり判定ロジック（フリーズ対策版） ★★★
+            // プレイヤーと敵の当たり判定
+            for (const enemy of enemies) {
                 if (isColliding(player, enemy)) {
                     finalScoreUI.textContent = `Score: ${score}`;
                     changeState(GameState.GAME_OVER);
-                    return;
+                    return; // update処理を中断
                 }
+            }
+            
+            // 弾と敵の当たり判定
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
                 for (let j = bullets.length - 1; j >= 0; j--) {
                     if (isColliding(bullets[j], enemy)) {
-                        bullets.splice(j, 1);
-                        enemy.hp -= 1;
+                        bullets.splice(j, 1); // 弾を消す
+                        enemy.hp -= 1; // ダメージを与える
                         playSound(hitSound);
-                        if (enemy.hp <= 0) {
-                            enemies.splice(i, 1);
-                            score += enemy.scoreValue;
-                            scoreUI.textContent = `Score: ${score}`;
-                        }
-                        break; 
+                        break; // 1発の弾は1体の敵にしか当たらないのでループを抜ける
                     }
                 }
             }
+
+            // HPが0になった敵を消す処理
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                if (enemies[i].hp <= 0) {
+                    score += enemies[i].scoreValue;
+                    enemies.splice(i, 1);
+                }
+            }
+            scoreUI.textContent = `Score: ${score}`; // スコア表示を更新
         }
 
         function isColliding(obj1, obj2) {
@@ -345,7 +346,6 @@
             ctx.shadowBlur = 0;
         }
 
-        // ★★★ 敵の描画（回転に対応） ★★★
         function drawEnemies() {
             enemies.forEach(e => {
                 if (e.type === 'irregular' && e.rotation !== 0) {
