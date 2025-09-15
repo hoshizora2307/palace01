@@ -67,8 +67,13 @@
         const finalScoreUI = document.getElementById('finalScore');
         const restartButton = document.getElementById('restartButton');
 
-        const enemyImage = new Image();
-        enemyImage.src = 'takase02.png';
+        // 敵キャラクターの画像を2種類読み込む
+        const enemyImages = {
+            takase: new Image(),
+            shimizu: new Image()
+        };
+        enemyImages.takase.src = 'takase02.png';
+        enemyImages.shimizu.src = 'shimizu.jpg';
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -158,8 +163,7 @@
 
         function resetGame() {
             score = 0;
-            // プレイヤーのサイズを小さく調整
-            player = { x: canvas.width / 2, y: canvas.height - 40, size: 30, color: '#FFFACD' }; 
+            player = { x: canvas.width / 2, y: canvas.height - 40, size: 30, color: '#FFFACD' };
             bullets = [];
             enemies = [];
             bulletTimer = 0;
@@ -170,7 +174,6 @@
         function update() {
             if (currentState !== GameState.PLAYING) return;
             
-            // 弾丸の出現頻度を上げて、プレイヤーの攻撃力を強化
             bulletTimer++;
             if (bulletTimer % 10 === 0) { 
                 bullets.push({ x: player.x, y: player.y, size: 10, color: '#FF00FF', speed: 10 });
@@ -178,11 +181,12 @@
             }
 
             enemyTimer++;
-            // 敵の出現頻度と速度を調整
             if (enemyTimer % 60 === 0) {
                 const size = 50;
                 const speed = 1 + Math.random() * 2;
-                enemies.push({ x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size, speed: speed });
+                // 敵画像をランダムに選択
+                const image = Math.random() > 0.5 ? enemyImages.takase : enemyImages.shimizu;
+                enemies.push({ x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size, speed: speed, image: image });
             }
             
             bullets.forEach(b => b.y -= b.speed);
@@ -193,7 +197,6 @@
 
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const enemy = enemies[i];
-                // プレイヤーと敵の衝突判定
                 if (isColliding(player, enemy, 1.2)) {
                     finalScoreUI.textContent = `Score: ${score}`;
                     changeState(GameState.GAME_OVER);
@@ -212,7 +215,6 @@
             }
         }
 
-        // 衝突判定ロジックを修正
         function isColliding(obj1, obj2, scale = 1) {
             const dist = Math.hypot(obj1.x - obj2.x, obj1.y - obj2.y);
             return dist < (obj1.size / 2 + obj2.size / 2) * scale;
@@ -270,38 +272,4 @@
                 ctx.lineTo(p.x + Math.cos(rot) * ir, p.y + Math.sin(rot) * ir);
                 rot += Math.PI / 5;
             }
-            ctx.closePath();
-            ctx.fillStyle = p.color;
-            ctx.fill();
-        }
-
-        function drawBullets() {
-            bullets.forEach(b => {
-                ctx.fillStyle = b.color;
-                ctx.shadowColor = b.color;
-                ctx.shadowBlur = 10;
-                ctx.beginPath();
-                ctx.arc(b.x, b.y, b.size / 2, 0, Math.PI * 2);
-                ctx.fill();
-            });
-            ctx.shadowBlur = 0;
-        }
-
-        function drawEnemies() {
-            enemies.forEach(e => {
-                // 画像を描画
-                ctx.drawImage(enemyImage, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
-            });
-        }
-        
-        function gameLoop() {
-            update();
-            draw();
-            requestAnimationFrame(gameLoop);
-        }
-
-        // 初期化処理の呼び出しを削除し、外部で呼び出す
-        window.onload = initialize;
-    </script>
-</body>
-</html>
+            ctx
