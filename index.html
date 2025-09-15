@@ -11,10 +11,10 @@
         #openingScreen, #score, #gameOverScreen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 2; text-align: center; color: #333; pointer-events: none;
-            display: none; /* 初期状態では非表示 */
+            display: none;
         }
         #openingScreen.active, #gameOverScreen.active {
-            display: flex; /* active クラスが付いたら表示 */
+            display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
@@ -24,10 +24,9 @@
             display: block;
         }
         #openingScreen h1, #gameOverScreen h1, #score {
-            pointer-events: auto; /* クリック可能にする */
+            pointer-events: auto;
         }
 
-        /* 以下、前回までのCSSスタイル */
         #openingScreen { cursor: pointer; }
         #score { top: 15px; left: 15px; font-size: 32px; font-weight: bold; color: #FFFFFF; text-shadow: 3px 3px 0px rgba(0,0,0,0.4); text-align: left; }
         #gameOverScreen { top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(255, 255, 255, 0.9); padding: 40px; border-radius: 20px; box-shadow: 0px 8px 15px rgba(0,0,0,0.2); height: auto; width: auto; }
@@ -109,6 +108,8 @@
             imagesToLoad--;
             if (imagesToLoad === 0) {
                 imagesLoaded = true;
+                // 画像が読み込まれてからオープニング画面を表示
+                openingScreenUI.classList.add('active');
             }
         }
 
@@ -149,6 +150,7 @@
         function handleStart(e) {
             e.preventDefault();
             if (currentState !== GameState.OPENING || !imagesLoaded) return;
+            
             // オーディオの初期化をユーザーの最初の操作時に行う
             if (!audioInitialized) {
                 audioContext.resume().then(() => {
@@ -160,6 +162,7 @@
             } else {
                 bgm.play();
             }
+            
             resetGame();
             changeState(GameState.PLAYING);
         }
@@ -173,4 +176,174 @@
         function moveHandler(e) {
             e.preventDefault();
             const pos = e.touches ? e.touches[0] : e;
-            mouse.x = pos.clientX
+            mouse.x = pos.clientX;
+            mouse.y = pos.clientY;
+            if (currentState === GameState.PLAYING) {
+                player.x = pos.clientX;
+            }
+        }
+        
+        function changeState(newState) {
+            currentState = newState;
+            if (newState === GameState.OPENING) {
+                openingScreenUI.classList.add('active');
+                scoreUI.classList.remove('active');
+                gameOverScreenUI.classList.remove('active');
+            } else if (newState === GameState.PLAYING) {
+                openingScreenUI.classList.remove('active');
+                scoreUI.classList.add('active');
+                gameOverScreenUI.classList.remove('active');
+            } else if (newState === GameState.GAME_OVER) {
+                openingScreenUI.classList.remove('active');
+                scoreUI.classList.remove('active');
+                gameOverScreenUI.classList.add('active');
+            }
+            if (newState === GameState.PLAYING && audioInitialized) {
+                bgm.play();
+            } else {
+                bgm.pause();
+                bgm.currentTime = 0;
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            player = { x: canvas.width / 2, y: canvas.height - 40, size: 30, color: '#FFFACD' }; 
+            bullets = [];
+            enemies = [];
+            bulletTimer = 0;
+            enemyTimer = 0;
+            scoreUI.textContent = 'Score: 0';
+        }
+
+        function update() {
+            if (currentState !== GameState.PLAYING) return;
+            
+            bulletTimer++;
+            if (bulletTimer % 10 === 0) { 
+                bullets.push({ x: player.x, y: player.y, size: 10, color: '#FF00FF', speed: 10 });
+                playSound(shootSound);
+            }
+
+            enemyTimer++;
+            if (enemyTimer % 60 === 0) {
+                const size = 50;
+                const speed = 1 + Math.random() * 2;
+                const image = Math.random() > 0.5 ? enemyImages.takase : enemyImages.shimizu;
+                enemies.push({ x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size, speed: speed, image: image });
+            }
+            
+            bullets.forEach(b => b.y -= b.speed);
+            enemies.forEach(e => e.y += e.speed);
+
+            bullets = bullets.filter(b => b.y > -b.size);
+            enemies = enemies.filter(e => e.y < canvas.height + e.size);
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                if (isColliding(player, enemy, 1.2)) {
+                    finalScoreUI.textContent = `Score: ${score}`;
+                    changeState(GameState.GAME_OVER);
+                    return;
+                }
+                for (let j = bullets.length - 1; j >= 0; j--) {
+                    if (isColliding(bullets[j], enemy, 1.2)) {
+                        enemies.splice(i, 1);
+                        bullets.splice(j, 1);
+                        score += 100;
+                        scoreUI.textContent = `Score: ${score}`;
+                        playSound(hitSound);
+                        break;
+                    }
+                }
+            }
+        }
+
+        function isColliding(obj1, obj2, scale = 1) {
+            const dist = Math.hypot(obj1.x - obj2.x, obj1.y - obj2.y);
+            return dist < (obj1.size / 2 + obj2.size / 2) * scale;
+        }
+        
+        function playSound(sound) {
+            if (!audioInitialized) return;
+            sound.currentTime = 0;
+            sound.play();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawParticles();
+            if (currentState === GameState.PLAYING || currentState === GameState.GAME_OVER) {
+                drawPlayer();
+                drawBullets();
+                drawEnemies();
+            }
+        }
+
+        function drawParticles() {
+            ctx.fillStyle = '#0c0c1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                if (mouse.x !== null) {
+                    const dist = Math.hypot(mouse.x - p.x, mouse.y - p.y);
+                    if (dist < mouse.radius) {
+                        p.x -= (mouse.x - p.x) / 20;
+                        p.y -= (mouse.y - p.y) / 20;
+                    }
+                }
+                p.y += p.directionY;
+                if (p.y < 0) {
+                    p.x = Math.random() * canvas.width;
+                    p.y = canvas.height;
+                }
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.fill();
+            });
+        }
+        
+        function drawPlayer() {
+            const p = player;
+            const r = p.size / 2;
+            const ir = p.size / 4;
+            let rot = Math.PI / 2 * 3;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y - r);
+            for (let i = 0; i < 5; i++) {
+                ctx.lineTo(p.x + Math.cos(rot) * r, p.y + Math.sin(rot) * r);
+                rot += Math.PI / 5;
+                ctx.lineTo(p.x + Math.cos(rot) * ir, p.y + Math.sin(rot) * ir);
+                rot += Math.PI / 5;
+            }
+            ctx.closePath();
+            ctx.fillStyle = p.color;
+            ctx.fill();
+        }
+
+        function drawEnemies() {
+            enemies.forEach(e => {
+                if (e.image && e.image.complete) {
+                    ctx.drawImage(e.image, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
+                } else {
+                    ctx.fillStyle = '#ff0000';
+                    ctx.fillRect(e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
+                }
+            });
+        }
+        
+        function gameLoop() {
+            if (imagesLoaded) {
+                update();
+            }
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        window.onload = () => {
+            initialize();
+            setupEventListeners();
+        };
+    </script>
+</body>
+</html>
