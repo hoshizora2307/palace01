@@ -116,13 +116,14 @@
 
         const GameState = { OPENING: 'OPENING', PLAYING: 'PLAYING', GAME_OVER: 'GAME_OVER' };
         let currentState = GameState.OPENING;
-        let player, bullets, enemies, particles, score, bulletTimer, enemyTimer, mouse, bossSpawnScore;
+        let player, bullets, enemies, particles, score, bulletTimer, enemyTimer, mouse, specialEventScore, swarmEnemiesToSpawn;
 
         function initialize() {
             player = {}; bullets = []; enemies = []; particles = [];
             score = 0; bulletTimer = 0; enemyTimer = 0;
             mouse = { x: null, y: null, radius: 100 };
-            bossSpawnScore = 5000;
+            specialEventScore = 5000;
+            swarmEnemiesToSpawn = 0;
             let numberOfParticles = (canvas.width * canvas.height) / 9000;
             for (let i = 0; i < numberOfParticles; i++) {
                 particles.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: Math.random() * 2 + 1, directionY: Math.random() * -1 - 0.5 });
@@ -183,35 +184,49 @@
             bullets = []; enemies = [];
             bulletTimer = 0;
             enemyTimer = 0;
-            bossSpawnScore = 5000;
+            specialEventScore = 5000;
+            swarmEnemiesToSpawn = 0;
             scoreUI.textContent = 'Score: 0';
         }
 
         function update() {
             if (currentState !== GameState.PLAYING) return;
             
-            // 弾の発射
             bulletTimer++;
             if (bulletTimer % 15 === 0) {
                 bullets.push({ x: player.x, y: player.y, size: 15, color: '#FF00FF', speed: 8 });
                 playSound(shootSound);
             }
 
-            // ボスの出現
-            if (score >= bossSpawnScore) {
+            // ★★★ スウォーム（大群）イベントとボスの出現トリガー ★★★
+            if (score >= specialEventScore) {
+                swarmEnemiesToSpawn = 100; // 100体のスウォームをセット
+
                 const bossExists = enemies.some(e => e.type === 'boss');
                 if (!bossExists) {
                     enemies.push({
                         type: 'boss', x: canvas.width / 2, y: -150, size: 150,
                         speed: 0.5, hp: 20, scoreValue: 3000, image: enemyImage_hoshizora
                     });
-                    bossSpawnScore += 5000;
                 }
+                specialEventScore += 5000; // 次のイベント発生スコアをセット
             }
 
-            // ザコ敵の出現
+            // ★★★ スウォームの出現処理 ★★★
+            if (swarmEnemiesToSpawn > 0) {
+                const spawnCount = Math.min(swarmEnemiesToSpawn, 5); // 1フレームに5体まで
+                for (let i = 0; i < spawnCount; i++) {
+                    enemies.push({
+                        type: 'basic', x: Math.random() * canvas.width, y: -50 - Math.random() * 100, size: 50,
+                        speed: 3 + Math.random() * 2, hp: 1, scoreValue: 100, image: enemyImage_takase02
+                    });
+                }
+                swarmEnemiesToSpawn -= spawnCount;
+            }
+
+            // 通常のザコ敵の出現
             enemyTimer++;
-            if (enemyTimer % 30 === 0) {
+            if (enemyTimer % 35 === 0) {
                 const rand = Math.random();
                 if (rand < 0.45) {
                     enemies.push({
@@ -234,19 +249,15 @@
                 }
             }
 
-            // 弾の移動と画面外の削除
             bullets.forEach(b => b.y -= b.speed);
             bullets = bullets.filter(b => b.y > -b.size);
 
-            // 敵の移動と画面外の削除
             enemies.forEach(e => {
                 switch(e.type) {
                     case 'basic': case 'boss': e.y += e.speed; break;
                     case 'zako':
                         e.x += e.vx; e.y += e.vy;
-                        if (e.x + e.size/2 < 0 || e.x - e.size/2 > canvas.width) {
-                            if (e.y > 0) e.vx *= -1;
-                        }
+                        if (e.x + e.size/2 < 0 || e.x - e.size/2 > canvas.width) { if (e.y > 0) e.vx *= -1; }
                         break;
                     case 'irregular':
                         e.x += e.vx; e.y += e.vy; e.rotation += e.rotationSpeed;
@@ -257,37 +268,27 @@
             });
             enemies = enemies.filter(e => e.y < canvas.height + e.size);
 
-            // ★★★ 当たり判定ロジック（フリーズ対策版） ★★★
-            // プレイヤーと敵の当たり判定
             for (const enemy of enemies) {
                 if (isColliding(player, enemy)) {
-                    finalScoreUI.textContent = `Score: ${score}`;
-                    changeState(GameState.GAME_OVER);
-                    return; // update処理を中断
+                    finalScoreUI.textContent = `Score: ${score}`; changeState(GameState.GAME_OVER); return;
                 }
             }
             
-            // 弾と敵の当たり判定
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const enemy = enemies[i];
                 for (let j = bullets.length - 1; j >= 0; j--) {
                     if (isColliding(bullets[j], enemy)) {
-                        bullets.splice(j, 1); // 弾を消す
-                        enemy.hp -= 1; // ダメージを与える
-                        playSound(hitSound);
-                        break; // 1発の弾は1体の敵にしか当たらないのでループを抜ける
+                        bullets.splice(j, 1); enemy.hp -= 1; playSound(hitSound); break;
                     }
                 }
             }
 
-            // HPが0になった敵を消す処理
             for (let i = enemies.length - 1; i >= 0; i--) {
                 if (enemies[i].hp <= 0) {
-                    score += enemies[i].scoreValue;
-                    enemies.splice(i, 1);
+                    score += enemies[i].scoreValue; enemies.splice(i, 1);
                 }
             }
-            scoreUI.textContent = `Score: ${score}`; // スコア表示を更新
+            scoreUI.textContent = `Score: ${score}`;
         }
 
         function isColliding(obj1, obj2) {
@@ -305,9 +306,7 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawParticles();
             if (currentState === GameState.PLAYING || currentState === GameState.GAME_OVER) {
-                drawPlayer();
-                drawBullets();
-                drawEnemies();
+                drawPlayer(); drawBullets(); drawEnemies();
             }
         }
 
@@ -321,10 +320,8 @@
                 }
                 p.y += p.directionY;
                 if (p.y < 0) { p.x = Math.random() * canvas.width; p.y = canvas.height; }
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; ctx.fill();
             });
         }
         
@@ -349,11 +346,8 @@
         function drawEnemies() {
             enemies.forEach(e => {
                 if (e.type === 'irregular' && e.rotation !== 0) {
-                    ctx.save();
-                    ctx.translate(e.x, e.y);
-                    ctx.rotate(e.rotation);
-                    ctx.drawImage(e.image, -e.size / 2, -e.size / 2, e.size, e.size);
-                    ctx.restore();
+                    ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.rotation);
+                    ctx.drawImage(e.image, -e.size / 2, -e.size / 2, e.size, e.size); ctx.restore();
                 } else {
                     ctx.drawImage(e.image, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
                 }
@@ -361,9 +355,7 @@
         }
         
         function gameLoop() {
-            update();
-            draw();
-            requestAnimationFrame(gameLoop);
+            update(); draw(); requestAnimationFrame(gameLoop);
         }
 
         initialize();
