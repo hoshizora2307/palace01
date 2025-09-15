@@ -61,23 +61,4 @@
         'use strict';
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const openingScreenUI = document.getElementById('openingScreen');
-        const scoreUI = document.getElementById('score');
-        const gameOverScreenUI = document.getElementById('gameOverScreen');
-        const finalScoreUI = document.getElementById('finalScore');
-        const restartButton = document.getElementById('restartButton');
-
-        const enemyImages = {
-            takase: new Image(),
-            shimizu: new Image()
-        };
-        enemyImages.takase.src = 'takase02.png';
-        enemyImages.shimizu.src = 'shimizu.png';
-
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        let audioInitialized = false;
-
-        const bgm = new Audio('
+        const openingScreenUI = document.getElementById('
