@@ -61,4 +61,136 @@
         'use strict';
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const openingScreenUI = document.getElementById('
+        const openingScreenUI = document.getElementById('openingScreen');
+        const scoreUI = document.getElementById('score');
+        const gameOverScreenUI = document.getElementById('gameOverScreen');
+        const finalScoreUI = document.getElementById('finalScore');
+        const restartButton = document.getElementById('restartButton');
+
+        const enemyImages = {
+            takase: new Image(),
+            shimizu: new Image()
+        };
+        enemyImages.takase.src = 'takase02.png';
+        enemyImages.shimizu.src = 'shimizu.png';
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let audioInitialized = false;
+
+        const bgm = new Audio('https://otologic.jp/sounds/bgm/mp3/Simple_Pop_3.mp3');
+        bgm.loop = true;
+        const shootSound = new Audio('https://otologic.jp/sounds/se/mp3/se-pop12.mp3');
+        const hitSound = new Audio('https://otologic.jp/sounds/se/mp3/se-pop02.mp3');
+
+        const GameState = { OPENING: 'OPENING', PLAYING: 'PLAYING', GAME_OVER: 'GAME_OVER' };
+        let currentState = GameState.OPENING;
+        let player, bullets, enemies, particles, score, bulletTimer, enemyTimer, mouse;
+        let imagesLoaded = false;
+        let imagesToLoad = 2;
+
+        function checkImagesLoaded() {
+            imagesToLoad--;
+            if (imagesToLoad === 0) {
+                imagesLoaded = true;
+            }
+        }
+
+        enemyImages.takase.onload = checkImagesLoaded;
+        enemyImages.shimizu.onload = checkImagesLoaded;
+        enemyImages.takase.onerror = () => { console.error('takase02.pngの読み込みに失敗しました。'); checkImagesLoaded(); };
+        enemyImages.shimizu.onerror = () => { console.error('shimizu.pngの読み込みに失敗しました。'); checkImagesLoaded(); };
+
+        function initialize() {
+            player = { x: canvas.width / 2, y: canvas.height - 40, size: 30, color: '#FFFACD' };
+            bullets = [];
+            enemies = [];
+            particles = [];
+            score = 0;
+            bulletTimer = 0;
+            enemyTimer = 0;
+            mouse = { x: null, y: null, radius: 100 };
+            
+            let numberOfParticles = (canvas.width * canvas.height) / 9000;
+            for (let i = 0; i < numberOfParticles; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 2 + 1,
+                    directionY: Math.random() * -1 - 0.5
+                });
+            }
+        }
+
+        function setupEventListeners() {
+            openingScreenUI.addEventListener('mousedown', handleStart);
+            openingScreenUI.addEventListener('touchstart', handleStart);
+            restartButton.addEventListener('click', handleRestart);
+            canvas.addEventListener('mousemove', moveHandler);
+            canvas.addEventListener('touchmove', moveHandler);
+        }
+
+        function handleStart(e) {
+            e.preventDefault();
+            if (currentState !== GameState.OPENING || !imagesLoaded) return;
+            // オーディオの初期化をユーザーの最初の操作時に行う
+            if (!audioInitialized) {
+                audioContext.resume().then(() => {
+                    audioInitialized = true;
+                    bgm.play();
+                }).catch(error => {
+                    console.error('オーディオの再生が許可されませんでした:', error);
+                });
+            } else {
+                bgm.play();
+            }
+            resetGame();
+            changeState(GameState.PLAYING);
+        }
+
+        function handleRestart() {
+            if (currentState !== GameState.GAME_OVER) return;
+            resetGame();
+            changeState(GameState.PLAYING);
+        }
+
+        function moveHandler(e) {
+            e.preventDefault();
+            const pos = e.touches ? e.touches[0] : e;
+            mouse.x = pos.clientX;
+            mouse.y = pos.clientY;
+            if (currentState === GameState.PLAYING) {
+                player.x = pos.clientX;
+            }
+        }
+        
+        function changeState(newState) {
+            currentState = newState;
+            openingScreenUI.style.display = (newState === GameState.OPENING) ? 'flex' : 'none';
+            scoreUI.style.display = (newState === GameState.PLAYING) ? 'block' : 'none';
+            gameOverScreenUI.style.display = (newState === GameState.GAME_OVER) ? 'block' : 'none';
+            if (newState === GameState.PLAYING && audioInitialized) {
+                bgm.play();
+            } else {
+                bgm.pause();
+                bgm.currentTime = 0;
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            player = { x: canvas.width / 2, y: canvas.height - 40, size: 30, color: '#FFFACD' }; 
+            bullets = [];
+            enemies = [];
+            bulletTimer = 0;
+            enemyTimer = 0;
+            scoreUI.textContent = 'Score: 0';
+        }
+
+        function update() {
+            if (currentState !== GameState.PLAYING) return;
+            
+            bulletTimer++;
+            if (bullet
