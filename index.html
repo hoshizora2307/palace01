@@ -6,7 +6,7 @@
     <title>未確認飛行物体から志賀高原を救え！</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Mochiy+Pop+One&display=swap');
-        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #0c0c1a; font-family: 'Mochiy Pop One', 'Hirgino Sans', sans-serif; }
+        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #0c0c1a; font-family: 'Mochiy Pop One', 'Hiragino Sans', sans-serif; }
         #gameCanvas { display: block; background-color: #0c0c1a; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         #openingScreen, #score, #gameOverScreen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -47,8 +47,6 @@
             transform: translateY(-2px);
             box-shadow: 0px 6px 12px rgba(0,0,0,0.4);
         }
-
-        /* ★★★ ここに著作権表示のスタイルを追加 ★★★ */
         .copyright {
             font-size: min(2.5vw, 12px);
             color: rgba(255, 255, 255, 0.6);
@@ -56,7 +54,6 @@
             text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
             letter-spacing: 1px;
         }
-
         @keyframes fadeIn { to { opacity: 1; } }
         @keyframes gradient-text { to { background-position: -200% 0; } }
         @keyframes pulse-glow { from { text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #00ffff; } to { text-shadow: 0 0 10px #fff, 0 0 20px #00ffff, 0 0 30px #00ffff; } }
@@ -71,7 +68,7 @@
             <a href="https://www.instagram.com/hoshizora_shigakogen/" target="_blank" id="instagramButton">★ instagramもみてね！</a>
             <br>きれいな星々の写真があるよ！
         </p>
-        <p id="promoText">🎁 10万点以上でプレゼント進呈！ 🎁<br>ゲームオーバー画面をフロントにお見seください。</p>
+        <p id="promoText">🎁 10万点以上でプレゼント進呈！ 🎁<br>ゲームオーバー画面をフロントにお見せください。</p>
         <p id="creatorInfo">Creator: hoshizora2307</p>
         <div id="linksContainer">
             <a href="https://hotel2307.com/" target="_blank">ホテル2307</a>
@@ -79,7 +76,6 @@
             <a href="https://yudanakaview.co.jp/" target="_blank">美湯の宿</a>
         </div>
         <p id="tapToStart">TAP TO PLAY!</p>
-        
         <p class="copyright">&copy;2025 株式会社S&T観光開発</p>
     </div>
     <div id="score">Score: 0</div>
@@ -98,9 +94,17 @@
         const gameOverScreenUI = document.getElementById('gameOverScreen');
         const finalScoreUI = document.getElementById('finalScore');
         const restartButton = document.getElementById('restartButton');
-        const enemyImage = new Image();
-        enemyImage.src = 'takase02.png';
         
+        // ★★★ 敵画像の読み込み ★★★
+        const enemyImage_takase02 = new Image();
+        enemyImage_takase02.src = 'takase02.png';
+        const enemyImage_kanai = new Image();
+        enemyImage_kanai.src = 'kanai.png';
+        const enemyImage_hoshizora = new Image();
+        enemyImage_hoshizora.src = 'hoshizora.png';
+        const enemyImage_takase03 = new Image();
+        enemyImage_takase03.src = 'takase03.png';
+
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
@@ -113,12 +117,13 @@
 
         const GameState = { OPENING: 'OPENING', PLAYING: 'PLAYING', GAME_OVER: 'GAME_OVER' };
         let currentState = GameState.OPENING;
-        let player, bullets, enemies, particles, score, bulletTimer, enemyTimer, mouse;
+        let player, bullets, enemies, particles, score, bulletTimer, enemyTimer, mouse, bossSpawnScore;
 
         function initialize() {
             player = {}; bullets = []; enemies = []; particles = [];
             score = 0; bulletTimer = 0; enemyTimer = 0;
             mouse = { x: null, y: null, radius: 100 };
+            bossSpawnScore = 5000;
             let numberOfParticles = (canvas.width * canvas.height) / 9000;
             for (let i = 0; i < numberOfParticles; i++) {
                 particles.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: Math.random() * 2 + 1, directionY: Math.random() * -1 - 0.5 });
@@ -179,40 +184,106 @@
             bullets = []; enemies = [];
             bulletTimer = 0;
             enemyTimer = 0;
+            bossSpawnScore = 5000;
             scoreUI.textContent = 'Score: 0';
         }
 
         function update() {
             if (currentState !== GameState.PLAYING) return;
+            
+            // 弾の発射
             bulletTimer++;
             if (bulletTimer % 15 === 0) {
                 bullets.push({ x: player.x, y: player.y, size: 15, color: '#FF00FF', speed: 8 });
                 playSound(shootSound);
             }
-            enemyTimer++;
-            if (enemyTimer % 40 === 0) {
-                const type = Math.random() < 0.6 ? 'square' : 'circle';
-                const size = type === 'square' ? 50 : 65;
-                const speed = type === 'square' ? 2.5 + Math.random() * 2 : 2 + Math.random() * 1.5;
-                enemies.push({ x: Math.random() * canvas.width, y: -size, size: size, speed: speed });
+
+            // ★★★ 新しい敵の出現ロジック ★★★
+            // ボスの出現
+            if (score >= bossSpawnScore) {
+                const bossExists = enemies.some(e => e.type === 'boss');
+                if (!bossExists) {
+                    enemies.push({
+                        type: 'boss', x: canvas.width / 2, y: -150, size: 150,
+                        speed: 0.5, hp: 20, scoreValue: 3000, image: enemyImage_hoshizora
+                    });
+                    bossSpawnScore += 5000;
+                }
             }
+
+            // ザコ敵の出現
+            enemyTimer++;
+            if (enemyTimer % 30 === 0) { // 出現頻度を少し上げる
+                const rand = Math.random();
+                if (rand < 0.45) { // takase02 (基本)
+                    enemies.push({
+                        type: 'basic', x: Math.random() * canvas.width, y: -50, size: 50,
+                        speed: 2.5 + Math.random(), hp: 1, scoreValue: 100, image: enemyImage_takase02
+                    });
+                } else if (rand < 0.75) { // kanai (横移動)
+                    const startX = Math.random() < 0.5 ? -40 : canvas.width + 40;
+                    const speedX = startX < 0 ? 2 : -2;
+                    enemies.push({
+                        type: 'zako', x: startX, y: Math.random() * canvas.height * 0.3, size: 45,
+                        vx: speedX, vy: 0.5, hp: 1, scoreValue: 150, image: enemyImage_kanai
+                    });
+                } else { // takase03 (不規則)
+                    enemies.push({
+                        type: 'irregular', x: Math.random() * canvas.width, y: -60, size: 60,
+                        vx: (Math.random() - 0.5) * 4, vy: 2, hp: 3, scoreValue: 300, image: enemyImage_takase03,
+                        rotation: 0, rotationSpeed: (Math.random() - 0.5) * 0.1
+                    });
+                }
+            }
+
+            // 弾の移動と画面外の削除
             bullets.forEach(b => b.y -= b.speed);
-            enemies.forEach(e => e.y += e.speed);
             bullets = bullets.filter(b => b.y > -b.size);
+
+            // 敵の移動と画面外の削除
+            enemies.forEach(e => {
+                switch(e.type) {
+                    case 'basic':
+                    case 'boss':
+                        e.y += e.speed;
+                        break;
+                    case 'zako':
+                        e.x += e.vx;
+                        e.y += e.vy;
+                        if (e.x + e.size/2 < 0 || e.x - e.size/2 > canvas.width) {
+                            if (e.y > 0) e.vx *= -1; // 画面内に入ってから反転
+                        }
+                        break;
+                    case 'irregular':
+                        e.x += e.vx;
+                        e.y += e.vy;
+                        e.rotation += e.rotationSpeed;
+                        if (e.x + e.size/2 < 0 || e.x - e.size/2 > canvas.width) e.vx *= -1;
+                        if (Math.random() < 0.01) e.vx = (Math.random() - 0.5) * 4; // たまに動きを変える
+                        break;
+                }
+            });
             enemies = enemies.filter(e => e.y < canvas.height + e.size);
+
+            // ★★★ 当たり判定ロジック（HP制に対応） ★★★
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const enemy = enemies[i];
                 if (isColliding(player, enemy)) {
-                    finalScoreUI.textContent = `Score: ${score}`; changeState(GameState.GAME_OVER); return;
+                    finalScoreUI.textContent = `Score: ${score}`;
+                    changeState(GameState.GAME_OVER);
+                    return;
                 }
                 for (let j = bullets.length - 1; j >= 0; j--) {
                     if (isColliding(bullets[j], enemy)) {
-                        enemies.splice(i, 1);
                         bullets.splice(j, 1);
-                        score += 100;
-                        scoreUI.textContent = `Score: ${score}`;
+                        enemy.hp -= 1;
                         playSound(hitSound);
-                        break;
+                        if (enemy.hp <= 0) {
+                            enemies.splice(i, 1);
+                            score += enemy.scoreValue;
+                            scoreUI.textContent = `Score: ${score}`;
+                        }
+                        break; 
                     }
                 }
             }
@@ -274,9 +345,18 @@
             ctx.shadowBlur = 0;
         }
 
+        // ★★★ 敵の描画（回転に対応） ★★★
         function drawEnemies() {
             enemies.forEach(e => {
-                ctx.drawImage(enemyImage, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
+                if (e.type === 'irregular' && e.rotation !== 0) {
+                    ctx.save();
+                    ctx.translate(e.x, e.y);
+                    ctx.rotate(e.rotation);
+                    ctx.drawImage(e.image, -e.size / 2, -e.size / 2, e.size, e.size);
+                    ctx.restore();
+                } else {
+                    ctx.drawImage(e.image, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
+                }
             });
         }
         
