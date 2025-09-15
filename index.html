@@ -30,6 +30,26 @@
         #linksContainer a { color: white; background-color: rgba(255, 255, 255, 0.2); padding: 8px 15px; border-radius: 20px; text-decoration: none; font-size: min(3.5vw, 16px); transition: background-color 0.3s; }
         #linksContainer a:hover { background-color: rgba(255, 255, 255, 0.4); }
         #tapToStart { font-family: 'Fredoka One', cursive; font-size: min(6vw, 40px); color: #FFF; margin-top: 25px; animation: pulse-glow 1.5s infinite alternate; }
+
+        /* ★★★ ここにインスタグラムボタンのスタイルを追加 ★★★ */
+        #instagramButton {
+            display: inline-block;
+            margin-bottom: 8px;
+            padding: 10px 18px;
+            font-size: min(4vw, 16px);
+            color: #FFF;
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            border-radius: 25px;
+            text-decoration: none;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+            box-shadow: 0px 4px 8px rgba(0,0,0,0.3);
+            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+        }
+        #instagramButton:hover {
+            transform: translateY(-2px);
+            box-shadow: 0px 6px 12px rgba(0,0,0,0.4);
+        }
+
         @keyframes fadeIn { to { opacity: 1; } }
         @keyframes gradient-text { to { background-position: -200% 0; } }
         @keyframes pulse-glow { from { text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #00ffff; } to { text-shadow: 0 0 10px #fff, 0 0 20px #00ffff, 0 0 30px #00ffff; } }
@@ -40,8 +60,13 @@
     <canvas id="gameCanvas"></canvas>
     <div id="openingScreen">
         <h1>未確認飛行物体から<br>志賀高原を救え！</h1>
-        <p id="coalitionInfo">instagramもみてね！.<br>きれいな星々の写真があるよ！</p>
-        <p id="promoText">🎁 10万点以上でプレゼント進呈！ 🎁<br>スコア画面をフロントにお見せください。</p>
+
+        <p id="coalitionInfo">
+            <a href="https://www.instagram.com/hoshizora_shigakogen/" target="_blank" id="instagramButton">★ instagramもみてね！</a>
+            <br>きれいな星々の写真があるよ！
+        </p>
+        
+        <p id="promoText">🎁 10万点以上でプレゼント進呈！ 🎁<br>ゲームオーバー画面をフロントにお見せください。</p>
         <p id="creatorInfo">Creator: hoshizora2307</p>
         <div id="linksContainer">
             <a href="https://hotel2307.com/" target="_blank">ホテル2307</a>
@@ -66,8 +91,6 @@
         const gameOverScreenUI = document.getElementById('gameOverScreen');
         const finalScoreUI = document.getElementById('finalScore');
         const restartButton = document.getElementById('restartButton');
-
-        // ★★★ 変更点1: 敵の画像を読み込む ★★★
         const enemyImage = new Image();
         enemyImage.src = 'takase02.png';
         
@@ -161,7 +184,6 @@
             }
             enemyTimer++;
             if (enemyTimer % 40 === 0) {
-                // 画像を使うので type と color は不要になるが、size の決定に使うため残す
                 const type = Math.random() < 0.6 ? 'square' : 'circle';
                 const size = type === 'square' ? 50 : 65;
                 const speed = type === 'square' ? 2.5 + Math.random() * 2 : 2 + Math.random() * 1.5;
@@ -237,6 +259,8 @@
             ctx.closePath(); ctx.fillStyle = p.color; ctx.fill();
         }
 
+
+
         function drawBullets() {
             bullets.forEach(b => {
                 ctx.fillStyle = b.color; ctx.shadowColor = b.color; ctx.shadowBlur = 10;
@@ -245,7 +269,6 @@
             ctx.shadowBlur = 0;
         }
 
-        // ★★★ 変更点2: 図形の代わりに画像を描画する ★★★
         function drawEnemies() {
             enemies.forEach(e => {
                 ctx.drawImage(enemyImage, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
