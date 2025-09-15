@@ -11,17 +11,26 @@
         #openingScreen, #score, #gameOverScreen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 2; text-align: center; color: #333; pointer-events: none;
+            display: none;
         }
-        #openingScreen, #gameOverScreen, #restartButton, #linksContainer a { pointer-events: auto; }
+        #openingScreen.active, #gameOverScreen.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+        }
+        #score.active {
+            display: block;
+        }
         #openingScreen { cursor: pointer; }
-        #score { top: 15px; left: 15px; font-size: 32px; font-weight: bold; color: #FFFFFF; text-shadow: 3px 3px 0px rgba(0,0,0,0.4); display: none; text-align: left; }
-        #gameOverScreen { top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(255, 255, 255, 0.9); padding: 40px; border-radius: 20px; box-shadow: 0px 8px 15px rgba(0,0,0,0.2); display: none; height: auto; width: auto; }
+        #score { top: 15px; left: 15px; font-size: 32px; font-weight: bold; color: #FFFFFF; text-shadow: 3px 3px 0px rgba(0,0,0,0.4); text-align: left; }
+        #gameOverScreen { top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(255, 255, 255, 0.9); padding: 40px; border-radius: 20px; box-shadow: 0px 8px 15px rgba(0,0,0,0.2); height: auto; width: auto; }
         #gameOverScreen h1 { font-family: 'Fredoka One', cursive; margin: 0 0 15px 0; font-size: 48px; color: #FF4500; text-shadow: 3px 3px 0px rgba(255,255,255,0.7); }
         #finalScore { font-size: 32px; margin-bottom: 30px; color: #4682B4; }
         #restartButton { padding: 15px 35px; font-size: 24px; cursor: pointer; background-color: #90EE90; color: white; border: none; border-radius: 30px; box-shadow: 0px 5px 0px #6B8E23; transition: all 0.1s ease-out; font-family: 'Mochiy Pop One', sans-serif; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
         #restartButton:hover { background-color: #80DA80; transform: translateY(2px); box-shadow: 0px 3px 0px #6B8E23; }
-        #openingScreen { display: flex; flex-direction: column; justify-content: center; align-items: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); opacity: 0; animation: fadeIn 1s ease-out forwards; }
-        #openingScreen.hidden { display: none; }
+        #openingScreen { text-shadow: 2px 2px 4px rgba(0,0,0,0.5); opacity: 0; animation: fadeIn 1s ease-out forwards; }
         #openingScreen h1 { font-family: 'Mochiy Pop One', 'Hiragino Sans', sans-serif; font-size: min(8vw, 50px); line-height: 1.2; margin-bottom: 15px; letter-spacing: 2px; background: linear-gradient(90deg, #ff00ff, #00ffff, #ffff00, #ff00ff); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: gradient-text 5s linear infinite; }
         #coalitionInfo { font-size: min(3vw, 14px); color: #DDD; margin: 0 0 15px 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.7); line-height: 1.5; }
         #promoText { background-color: rgba(106, 90, 205, 0.8); color: #FFF; font-size: min(4vw, 18px); padding: 10px 20px; margin: 10px 0; border-radius: 15px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); box-shadow: 0px 4px 10px rgba(0,0,0,0.3); line-height: 1.4; animation: pulse-scale 2s infinite alternate; }
@@ -38,7 +47,7 @@
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
-    <div id="openingScreen">
+    <div id="openingScreen" class="active">
         <h1>未確認飛行物体から<br>志賀高原を救え！</h1>
         <p id="coalitionInfo">instagramもみてね！.<br>きれいな星々の写真があるよ！</p>
         <p id="promoText">🎁 10万点以上でプレゼント進呈！ 🎁<br>ゲームオーバー画面をフロントにお見せください。</p>
@@ -67,41 +76,18 @@
         const finalScoreUI = document.getElementById('finalScore');
         const restartButton = document.getElementById('restartButton');
 
+        // 画像の読み込みを削除
         const enemyImages = {
-            takase: new Image(),
-            shimizu: new Image()
+            takase: null,
+            shimizu: null
         };
-        enemyImages.takase.src = 'takase02.png';
-        enemyImages.shimizu.src = 'shimizu.png';
-
+        
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        let audioInitialized = false;
-
-        const bgm = new Audio('https://otologic.jp/sounds/bgm/mp3/Simple_Pop_3.mp3');
-        bgm.loop = true;
-        const shootSound = new Audio('https://otologic.jp/sounds/se/mp3/se-pop12.mp3');
-        const hitSound = new Audio('https://otologic.jp/sounds/se/mp3/se-pop02.mp3');
 
         const GameState = { OPENING: 'OPENING', PLAYING: 'PLAYING', GAME_OVER: 'GAME_OVER' };
         let currentState = GameState.OPENING;
         let player, bullets, enemies, particles, score, bulletTimer, enemyTimer, mouse;
-        let imagesLoaded = false;
-        let imagesToLoad = 2;
-
-        function checkImagesLoaded() {
-            imagesToLoad--;
-            if (imagesToLoad === 0) {
-                imagesLoaded = true;
-            }
-        }
-
-        enemyImages.takase.onload = checkImagesLoaded;
-        enemyImages.shimizu.onload = checkImagesLoaded;
-        enemyImages.takase.onerror = () => { console.error('takase02.pngの読み込みに失敗しました。'); checkImagesLoaded(); };
-        enemyImages.shimizu.onerror = () => { console.error('shimizu.pngの読み込みに失敗しました。'); checkImagesLoaded(); };
 
         function initialize() {
             player = { x: canvas.width / 2, y: canvas.height - 40, size: 30, color: '#FFFACD' };
@@ -122,6 +108,8 @@
                     directionY: Math.random() * -1 - 0.5
                 });
             }
+            setupEventListeners();
+            gameLoop();
         }
 
         function setupEventListeners() {
@@ -134,18 +122,7 @@
 
         function handleStart(e) {
             e.preventDefault();
-            if (currentState !== GameState.OPENING || !imagesLoaded) return;
-            // オーディオの初期化をユーザーの最初の操作時に行う
-            if (!audioInitialized) {
-                audioContext.resume().then(() => {
-                    audioInitialized = true;
-                    bgm.play();
-                }).catch(error => {
-                    console.error('オーディオの再生が許可されませんでした:', error);
-                });
-            } else {
-                bgm.play();
-            }
+            if (currentState !== GameState.OPENING) return;
             resetGame();
             changeState(GameState.PLAYING);
         }
@@ -178,106 +155,4 @@
                 gameOverScreenUI.classList.remove('active');
             } else if (newState === GameState.GAME_OVER) {
                 openingScreenUI.classList.remove('active');
-                scoreUI.classList.remove('active');
-                gameOverScreenUI.classList.add('active');
-            }
-            if (newState === GameState.PLAYING && audioInitialized) {
-                bgm.play();
-            } else {
-                bgm.pause();
-                bgm.currentTime = 0;
-            }
-        }
-
-        function resetGame() {
-            score = 0;
-            player = { x: canvas.width / 2, y: canvas.height - 40, size: 30, color: '#FFFACD' }; 
-            bullets = [];
-            enemies = [];
-            bulletTimer = 0;
-            enemyTimer = 0;
-            scoreUI.textContent = 'Score: 0';
-        }
-
-        function update() {
-            if (currentState !== GameState.PLAYING) return;
-            
-            bulletTimer++;
-            if (bulletTimer % 10 === 0) { 
-                bullets.push({ x: player.x, y: player.y, size: 10, color: '#FF00FF', speed: 10 });
-                playSound(shootSound);
-            }
-
-            enemyTimer++;
-            if (enemyTimer % 60 === 0) {
-                const size = 50;
-                const speed = 1 + Math.random() * 2;
-                const image = Math.random() > 0.5 ? enemyImages.takase : enemyImages.shimizu;
-                enemies.push({ x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size, speed: speed, image: image });
-            }
-            
-            bullets.forEach(b => b.y -= b.speed);
-            enemies.forEach(e => e.y += e.speed);
-
-            bullets = bullets.filter(b => b.y > -b.size);
-            enemies = enemies.filter(e => e.y < canvas.height + e.size);
-
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                const enemy = enemies[i];
-                if (isColliding(player, enemy, 1.2)) {
-                    finalScoreUI.textContent = `Score: ${score}`;
-                    changeState(GameState.GAME_OVER);
-                    return;
-                }
-                for (let j = bullets.length - 1; j >= 0; j--) {
-                    if (isColliding(bullets[j], enemy, 1.2)) {
-                        enemies.splice(i, 1);
-                        bullets.splice(j, 1);
-                        score += 100;
-                        scoreUI.textContent = `Score: ${score}`;
-                        playSound(hitSound);
-                        break;
-                    }
-                }
-            }
-        }
-
-        function isColliding(obj1, obj2, scale = 1) {
-            const dist = Math.hypot(obj1.x - obj2.x, obj1.y - obj2.y);
-            return dist < (obj1.size / 2 + obj2.size / 2) * scale;
-        }
-        
-        function playSound(sound) {
-            if (!audioInitialized) return;
-            sound.currentTime = 0;
-            sound.play();
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawParticles();
-            if (currentState === GameState.PLAYING || currentState === GameState.GAME_OVER) {
-                drawPlayer();
-                drawBullets();
-                drawEnemies();
-            }
-        }
-
-        function drawParticles() {
-            ctx.fillStyle = '#0c0c1a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => {
-                if (mouse.x !== null) {
-                    const dist = Math.hypot(mouse.x - p.x, mouse.y - p.y);
-                    if (dist < mouse.radius) {
-                        p.x -= (mouse.x - p.x) / 20;
-                        p.y -= (mouse.y - p.y) / 20;
-                    }
-                }
-                p.y += p.directionY;
-                if (p.y < 0) {
-                    p.x = Math.random() * canvas.width;
-                    p.y = canvas.height;
-                }
-                ctx.beginPath();
-                ctx.arc(p.x
+                score
