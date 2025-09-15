@@ -6,7 +6,7 @@
     <title>未確認飛行物体から志賀高原を救え！</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Mochiy+Pop+One&display=swap');
-        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #0c0c1a; font-family: 'Mochiy Pop One', 'Hiragino Sans', sans-serif; }
+        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #0c0c1a; font-family: 'Mochiy Pop One', 'Hirgino Sans', sans-serif; }
         #gameCanvas { display: block; background-color: #0c0c1a; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         #openingScreen, #score, #gameOverScreen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -30,8 +30,6 @@
         #linksContainer a { color: white; background-color: rgba(255, 255, 255, 0.2); padding: 8px 15px; border-radius: 20px; text-decoration: none; font-size: min(3.5vw, 16px); transition: background-color 0.3s; }
         #linksContainer a:hover { background-color: rgba(255, 255, 255, 0.4); }
         #tapToStart { font-family: 'Fredoka One', cursive; font-size: min(6vw, 40px); color: #FFF; margin-top: 25px; animation: pulse-glow 1.5s infinite alternate; }
-
-        /* ★★★ ここにインスタグラムボタンのスタイルを追加 ★★★ */
         #instagramButton {
             display: inline-block;
             margin-bottom: 8px;
@@ -50,6 +48,15 @@
             box-shadow: 0px 6px 12px rgba(0,0,0,0.4);
         }
 
+        /* ★★★ ここに著作権表示のスタイルを追加 ★★★ */
+        .copyright {
+            font-size: min(2.5vw, 12px);
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 30px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+            letter-spacing: 1px;
+        }
+
         @keyframes fadeIn { to { opacity: 1; } }
         @keyframes gradient-text { to { background-position: -200% 0; } }
         @keyframes pulse-glow { from { text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #00ffff; } to { text-shadow: 0 0 10px #fff, 0 0 20px #00ffff, 0 0 30px #00ffff; } }
@@ -60,13 +67,11 @@
     <canvas id="gameCanvas"></canvas>
     <div id="openingScreen">
         <h1>未確認飛行物体から<br>志賀高原を救え！</h1>
-
         <p id="coalitionInfo">
             <a href="https://www.instagram.com/hoshizora_shigakogen/" target="_blank" id="instagramButton">★ instagramもみてね！</a>
             <br>きれいな星々の写真があるよ！
         </p>
-        
-        <p id="promoText">🎁 10万点以上でプレゼント進呈！ 🎁<br>ゲームオーバー画面をフロントにお見せください。</p>
+        <p id="promoText">🎁 10万点以上でプレゼント進呈！ 🎁<br>ゲームオーバー画面をフロントにお見seください。</p>
         <p id="creatorInfo">Creator: hoshizora2307</p>
         <div id="linksContainer">
             <a href="https://hotel2307.com/" target="_blank">ホテル2307</a>
@@ -74,6 +79,8 @@
             <a href="https://yudanakaview.co.jp/" target="_blank">美湯の宿</a>
         </div>
         <p id="tapToStart">TAP TO PLAY!</p>
+        
+        <p class="copyright">&copy;2025 株式会社S&T観光開発</p>
     </div>
     <div id="score">Score: 0</div>
     <div id="gameOverScreen">
@@ -258,8 +265,6 @@
             }
             ctx.closePath(); ctx.fillStyle = p.color; ctx.fill();
         }
-
-
 
         function drawBullets() {
             bullets.forEach(b => {
