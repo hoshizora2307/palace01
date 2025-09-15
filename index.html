@@ -41,7 +41,7 @@
     <div id="openingScreen">
         <h1>未確認飛行物体から<br>志賀高原を救え！</h1>
         <p id="coalitionInfo">instagramもみてね！.<br>きれいな星々の写真があるよ！</p>
-        <p id="promoText">🎁 10万点以上でプレゼント進呈！ 🎁<br>ゲームオーバー画面をフロントにお見せください。</p>
+        <p id="promoText">🎁 10万点以上でプレゼント進呈！ 🎁<br>スコア画面をフロントにお見せください。</p>
         <p id="creatorInfo">Creator: hoshizora2307</p>
         <div id="linksContainer">
             <a href="https://hotel2307.com/" target="_blank">ホテル2307</a>
@@ -72,7 +72,7 @@
             shimizu: new Image()
         };
         enemyImages.takase.src = 'takase02.png';
-        enemyImages.shimizu.src = 'shimizu.png'; // ファイル名を .png に変更
+        enemyImages.shimizu.src = 'shimizu.png';
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -95,14 +95,16 @@
             imagesToLoad--;
             if (imagesToLoad === 0) {
                 imagesLoaded = true;
+                // 画像読み込み完了後にゲームループを一度だけ開始
                 requestAnimationFrame(gameLoop);
             }
         }
 
         enemyImages.takase.onload = checkImagesLoaded;
         enemyImages.shimizu.onload = checkImagesLoaded;
-        enemyImages.takase.onerror = checkImagesLoaded;
-        enemyImages.shimizu.onerror = checkImagesLoaded;
+        // 画像読み込みエラー時の処理
+        enemyImages.takase.onerror = () => { console.error('takase02.pngの読み込みに失敗しました。'); checkImagesLoaded(); };
+        enemyImages.shimizu.onerror = () => { console.error('shimizu.pngの読み込みに失敗しました。'); checkImagesLoaded(); };
 
         function initialize() {
             player = { x: canvas.width / 2, y: canvas.height - 40, size: 30, color: '#FFFACD' };
@@ -123,6 +125,7 @@
                     directionY: Math.random() * -1 - 0.5
                 });
             }
+            setupEventListeners();
         }
 
         function setupEventListeners() {
@@ -202,3 +205,115 @@
             
             bullets.forEach(b => b.y -= b.speed);
             enemies.forEach(e => e.y += e.speed);
+
+            bullets = bullets.filter(b => b.y > -b.size);
+            enemies = enemies.filter(e => e.y < canvas.height + e.size);
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                if (isColliding(player, enemy, 1.2)) {
+                    finalScoreUI.textContent = `Score: ${score}`;
+                    changeState(GameState.GAME_OVER);
+                    return;
+                }
+                for (let j = bullets.length - 1; j >= 0; j--) {
+                    if (isColliding(bullets[j], enemy, 1.2)) {
+                        enemies.splice(i, 1);
+                        bullets.splice(j, 1);
+                        score += 100;
+                        scoreUI.textContent = `Score: ${score}`;
+                        playSound(hitSound);
+                        break;
+                    }
+                }
+            }
+        }
+
+        function isColliding(obj1, obj2, scale = 1) {
+            const dist = Math.hypot(obj1.x - obj2.x, obj1.y - obj2.y);
+            return dist < (obj1.size / 2 + obj2.size / 2) * scale;
+        }
+        
+        function playSound(sound) {
+            if (!audioInitialized) return;
+            sound.currentTime = 0;
+            sound.play();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawParticles();
+            if (currentState === GameState.PLAYING || currentState === GameState.GAME_OVER) {
+                drawPlayer();
+                drawBullets();
+                drawEnemies();
+            }
+        }
+
+        function drawParticles() {
+            ctx.fillStyle = '#0c0c1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                if (mouse.x !== null) {
+                    const dist = Math.hypot(mouse.x - p.x, mouse.y - p.y);
+                    if (dist < mouse.radius) {
+                        p.x -= (mouse.x - p.x) / 20;
+                        p.y -= (mouse.y - p.y) / 20;
+                    }
+                }
+                p.y += p.directionY;
+                if (p.y < 0) {
+                    p.x = Math.random() * canvas.width;
+                    p.y = canvas.height;
+                }
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.fill();
+            });
+        }
+        
+        function drawPlayer() {
+            const p = player;
+            const r = p.size / 2;
+            const ir = p.size / 4;
+            let rot = Math.PI / 2 * 3;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y - r);
+            for (let i = 0; i < 5; i++) {
+                ctx.lineTo(p.x + Math.cos(rot) * r, p.y + Math.sin(rot) * r);
+                rot += Math.PI / 5;
+                ctx.lineTo(p.x + Math.cos(rot) * ir, p.y + Math.sin(rot) * ir);
+                rot += Math.PI / 5;
+            }
+            ctx.closePath();
+            ctx.fillStyle = p.color;
+            ctx.fill();
+        }
+
+        function drawEnemies() {
+            enemies.forEach(e => {
+                if (e.image && e.image.complete) {
+                    ctx.drawImage(e.image, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
+                } else {
+                    ctx.fillStyle = '#ff0000';
+                    ctx.fillRect(e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
+                }
+            });
+        }
+        
+        function gameLoop() {
+            if (imagesLoaded) {
+                update();
+            }
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        window.onload = () => {
+            initialize();
+            setupEventListeners();
+        };
+    </script>
+</body>
+</html>
