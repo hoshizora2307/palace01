@@ -2,60 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>未確認飛行物体から志賀高原を救え！</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Mochiy+Pop+One&display=swap');
-        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #0c0c1a; font-family: 'Mochiy Pop One', 'Hiragino Sans', sans-serif; }
-        #gameCanvas { display: block; background-color: #0c0c1a; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
-        #openingScreen, #score, #gameOverScreen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 2; text-align: center; color: #333; pointer-events: none;
-        }
-        #openingScreen, #gameOverScreen, #restartButton, #linksContainer a { pointer-events: auto; }
-        #openingScreen { cursor: pointer; }
-        #score { top: 15px; left: 15px; font-size: 32px; font-weight: bold; color: #FFFFFF; text-shadow: 3px 3px 0px rgba(0,0,0,0.4); display: none; text-align: left; }
-        #gameOverScreen { top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(255, 255, 255, 0.9); padding: 40px; border-radius: 20px; box-shadow: 0px 8px 15px rgba(0,0,0,0.2); display: none; height: auto; width: auto; }
-        #gameOverScreen h1 { font-family: 'Fredoka One', cursive; margin: 0 0 15px 0; font-size: 48px; color: #FF4500; text-shadow: 3px 3px 0px rgba(255,255,255,0.7); }
-        #finalScore { font-size: 32px; margin-bottom: 30px; color: #4682B4; }
-        #restartButton { padding: 15px 35px; font-size: 24px; cursor: pointer; background-color: #90EE90; color: white; border: none; border-radius: 30px; box-shadow: 0px 5px 0px #6B8E23; transition: all 0.1s ease-out; font-family: 'Mochiy Pop One', sans-serif; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
-        #restartButton:hover { background-color: #80DA80; transform: translateY(2px); box-shadow: 0px 3px 0px #6B8E23; }
-        #openingScreen { display: flex; flex-direction: column; justify-content: center; align-items: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); opacity: 0; animation: fadeIn 1s ease-out forwards; }
-        #openingScreen.hidden { display: none; }
-        #openingScreen h1 { font-family: 'Mochiy Pop One', 'Hiragino Sans', sans-serif; font-size: min(8vw, 50px); line-height: 1.2; margin-bottom: 15px; letter-spacing: 2px; background: linear-gradient(90deg, #ff00ff, #00ffff, #ffff00, #ff00ff); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: gradient-text 5s linear infinite; }
-        #coalitionInfo { font-size: min(3vw, 14px); color: #DDD; margin: 0 0 15px 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.7); line-height: 1.5; }
-        #promoText { background-color: rgba(106, 90, 205, 0.8); color: #FFF; font-size: min(4vw, 18px); padding: 10px 20px; margin: 10px 0; border-radius: 15px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); box-shadow: 0px 4px 10px rgba(0,0,0,0.3); line-height: 1.4; animation: pulse-scale 2s infinite alternate; }
-        #creatorInfo { font-size: min(4.5vw, 25px); color: #DDD; }
-        #linksContainer { margin-top: 15px; display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
-        #linksContainer a { color: white; background-color: rgba(255, 255, 255, 0.2); padding: 8px 15px; border-radius: 20px; text-decoration: none; font-size: min(3.5vw, 16px); transition: background-color 0.3s; }
-        #linksContainer a:hover { background-color: rgba(255, 255, 255, 0.4); }
-        #tapToStart { font-family: 'Fredoka One', cursive; font-size: min(6vw, 40px); color: #FFF; margin-top: 25px; animation: pulse-glow 1.5s infinite alternate; }
-        @keyframes fadeIn { to { opacity: 1; } }
-        @keyframes gradient-text { to { background-position: -200% 0; } }
-        @keyframes pulse-glow { from { text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #00ffff; } to { text-shadow: 0 0 10px #fff, 0 0 20px #00ffff, 0 0 30px #00ffff; } }
-        @keyframes pulse-scale { from { transform: scale(1); } to { transform: scale(1.03); } }
-    </style>
-</head>
-<body>
-    <canvas id="gameCanvas"></canvas>
-    <div id="openingScreen">
-        <h1>未確認飛行物体から<br>志賀高原を救え！</h1>
-        <p id="coalitionInfo">instagramもみてね！.<br>きれいな星々の写真があるよ！</p>
-        <p id="promoText">🎁 10万点以上でプレゼント進呈！ 🎁<br>ゲームオーバー画面をフロントにお見せください。</p>
-        <p id="creatorInfo">Creator: hoshizora2307</p>
-        <div id="linksContainer">
-            <a href="#" target="_blank">ホテル2307</a>
-            <a href="https://www.shigapalace.co.jp/" target="_blank">志賀パレスホテル</a>
-            <a href="http://www.biyunoyado.jp/" target="_blank">美湯の宿</a>
-        </div>
-        <p id="tapToStart">TAP TO PLAY!</p>
-    </div>
-    <div id="score">Score: 0</div>
-    <div id="gameOverScreen">
-        <h1>GAME OVER!</h1>
-        <p id="finalScore">Score: 0</p>
-        <button id="restartButton">もう一度プレイ</button>
-    </div>
+    <meta name="viewport" content="width=device-width, initial-s
+
 
     <script>
         'use strict';
@@ -221,4 +169,114 @@
                 }
                 for (let j = bullets.length - 1; j >= 0; j--) {
                     if (isColliding(bullets[j], enemy, 1.2)) {
-                        enemies.splice
+                        enemies.splice(i, 1);
+                        bullets.splice(j, 1);
+                        score += 100;
+                        scoreUI.textContent = `Score: ${score}`;
+                        playSound(hitSound);
+                        break;
+                    }
+                }
+            }
+        }
+
+        function isColliding(obj1, obj2, scale = 1) {
+            const dist = Math.hypot(obj1.x - obj2.x, obj1.y - obj2.y);
+            return dist < (obj1.size / 2 + obj2.size / 2) * scale;
+        }
+        
+        function playSound(sound) {
+            if (!audioInitialized) return;
+            sound.currentTime = 0;
+            sound.play();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawParticles();
+            if (currentState === GameState.PLAYING || currentState === GameState.GAME_OVER) {
+                drawPlayer();
+                drawBullets();
+                drawEnemies();
+            }
+        }
+
+        function drawParticles() {
+            ctx.fillStyle = '#0c0c1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                if (mouse.x !== null) {
+                    const dist = Math.hypot(mouse.x - p.x, mouse.y - p.y);
+                    if (dist < mouse.radius) {
+                        p.x -= (mouse.x - p.x) / 20;
+                        p.y -= (mouse.y - p.y) / 20;
+                    }
+                }
+                p.y += p.directionY;
+                if (p.y < 0) {
+                    p.x = Math.random() * canvas.width;
+                    p.y = canvas.height;
+                }
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.fill();
+            });
+        }
+        
+        function drawPlayer() {
+            const p = player;
+            const r = p.size / 2;
+            const ir = p.size / 4;
+            let rot = Math.PI / 2 * 3;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y - r);
+            for (let i = 0; i < 5; i++) {
+                ctx.lineTo(p.x + Math.cos(rot) * r, p.y + Math.sin(rot) * r);
+                rot += Math.PI / 5;
+                ctx.lineTo(p.x + Math.cos(rot) * ir, p.y + Math.sin(rot) * ir);
+                rot += Math.PI / 5;
+            }
+            ctx.closePath();
+            ctx.fillStyle = p.color;
+            ctx.fill();
+        }
+
+        function drawBullets() {
+            bullets.forEach(b => {
+                ctx.fillStyle = b.color;
+                ctx.shadowColor = b.color;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.size / 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.shadowBlur = 0;
+        }
+
+        function drawEnemies() {
+            enemies.forEach(e => {
+                if (e.image && e.image.complete) {
+                    ctx.drawImage(e.image, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
+                } else {
+                    ctx.fillStyle = '#ff0000';
+                    ctx.fillRect(e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
+                }
+            });
+        }
+        
+        function gameLoop() {
+            if (imagesLoaded) {
+                update();
+            }
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        window.onload = () => {
+            initialize();
+            setupEventListeners();
+        };
+    </script>
+</body>
+</html>
